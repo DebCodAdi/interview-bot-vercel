@@ -1,0 +1,1 @@
+export default function Transcript({messages=[]}){return <div className="transcript" aria-label="Interview transcript">{messages.slice(-8).map((message,index)=><p key={`${index}-${message.content}`}><b>{message.role}:</b> {message.content}</p>)}</div>}

@@ -1,0 +1,12 @@
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import App from './App';
+import './styles.css';
+import { loader } from '@monaco-editor/react';
+import * as monaco from 'monaco-editor/esm/vs/editor/editor.api';
+import EditorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
+import 'monaco-editor/esm/vs/basic-languages/python/python.contribution';
+import 'monaco-editor/esm/vs/basic-languages/javascript/javascript.contribution';
+globalThis.MonacoEnvironment={getWorker:()=>new EditorWorker()};
+loader.config({monaco});
+createRoot(document.getElementById('root')).render(<React.StrictMode><App /></React.StrictMode>);

@@ -1,0 +1,1 @@
+export default function TestResults({result}){if(!result)return <div className="results">Run the hidden tests when ready.</div>;const passed=result.results.filter(item=>item.passed).length;return <div className={result.all_passed?'results pass':'results fail'}>{passed}/{result.results.length} hidden tests passed</div>}

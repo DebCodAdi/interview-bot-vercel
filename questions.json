@@ -1,0 +1,174 @@
+{
+  "topics": {
+    "software_engineer": [
+      {
+        "id": "se_001",
+        "difficulty": 3,
+        "question": "What is the difference between a process and a thread, and how does the CPU switch between them?",
+        "concepts": ["Operating Systems", "Concurrency", "Processes & Threads"],
+        "follow_up_hints": ["Mention memory sharing", "Explain context switching overhead"]
+      },
+      {
+        "id": "se_002",
+        "difficulty": 5,
+        "question": "Explain how garbage collection works in a modern runtime like JVM or V8, and what issues can trigger memory leaks despite it.",
+        "concepts": ["Garbage Collection", "Memory Management", "Memory Leaks"],
+        "follow_up_hints": ["Discuss generational hypothesis", "Talk about root references or closures"]
+      },
+      {
+        "id": "se_003",
+        "difficulty": 8,
+        "question": "How would you design a distributed rate limiter that handles 100,000 requests per second across multiple data centers? Describe the algorithm and data store you would choose.",
+        "concepts": ["System Design", "Distributed Systems", "Rate Limiting"],
+        "follow_up_hints": ["Compare Token Bucket vs Sliding Window", "Address data store synchronization latency"]
+      }
+    ],
+    "data_engineer": [
+      {
+        "id": "de_001",
+        "difficulty": 3,
+        "question": "What is the difference between OLTP and OLAP systems, and when would you choose one over the other?",
+        "concepts": ["Databases", "OLTP", "OLAP", "Data Architecture"],
+        "follow_up_hints": ["Compare query patterns (row vs column)", "Give typical use cases"]
+      },
+      {
+        "id": "de_002",
+        "difficulty": 5,
+        "question": "Explain the concept of partition skew in a distributed computing framework like Apache Spark, and how you would mitigate it.",
+        "concepts": ["Apache Spark", "Distributed Computing", "Partition Skew"],
+        "follow_up_hints": ["Explain salting", "Mention adaptive query execution"]
+      },
+      {
+        "id": "de_003",
+        "difficulty": 8,
+        "question": "How would you design an ETL pipeline that processes 50 million events per hour in real-time, ensuring exactly-once processing semantics?",
+        "concepts": ["ETL", "Real-Time Streaming", "Exactly-Once Semantics"],
+        "follow_up_hints": ["Mention Kafka offset management", "Explain idempotent sinks or transactional writes"]
+      }
+    ],
+    "ml_engineer": [
+      {
+        "id": "ml_001",
+        "difficulty": 3,
+        "question": "What is the difference between L1 and L2 regularization, and how do they affect the feature weights in a model?",
+        "concepts": ["Machine Learning", "Regularization", "Overfitting"],
+        "follow_up_hints": ["Explain sparsity (L1)", "Describe weight shrinking (L2)"]
+      },
+      {
+        "id": "ml_002",
+        "difficulty": 5,
+        "question": "Explain how the vanishing gradient problem occurs in deep neural networks and what architectures or techniques resolve it.",
+        "concepts": ["Deep Learning", "Gradients", "Neural Networks"],
+        "follow_up_hints": ["Mention activation functions like ReLU", "Discuss ResNet skip connections or LSTM gates"]
+      },
+      {
+        "id": "ml_003",
+        "difficulty": 8,
+        "question": "How would you design an online recommendation system that scales to 10 million active users. Address the latency constraints in retrieval and ranking phases.",
+        "concepts": ["Recommendation Systems", "System Design", "Retrieval vs Ranking"],
+        "follow_up_hints": ["Describe two-tower models", "Discuss vector database lookup latency vs heavy ranking model inference"]
+      }
+    ],
+    "fullstack_developer": [
+      {
+        "id": "fs_001",
+        "difficulty": 3,
+        "question": "What is the difference between Server-Side Rendering (SSR) and Client-Side Rendering (CSR), and how do they affect SEO and performance?",
+        "concepts": ["Frontend Architecture", "SSR", "CSR", "Web Performance"],
+        "follow_up_hints": ["Mention Time to Interactive (TTI)", "Discuss crawler behavior"]
+      },
+      {
+        "id": "fs_002",
+        "difficulty": 5,
+        "question": "How do WebSockets work, and how does the connection handshake differ from standard HTTP? How would you scale WebSockets to 50,000 concurrent connections?",
+        "concepts": ["WebSockets", "Networking", "Concurrency", "Scaling"],
+        "follow_up_hints": ["Explain HTTP Upgrade header", "Mention pub/sub adapters like Redis for scaling"]
+      },
+      {
+        "id": "fs_003",
+        "difficulty": 8,
+        "question": "Explain the Event Loop in JavaScript. How does it handle microtasks vs macrotasks, and how would you prevent blocking interactions in CPU-heavy frontend workloads?",
+        "concepts": ["JavaScript", "Event Loop", "Asynchronous Programming"],
+        "follow_up_hints": ["Contrast Promise resolves with setTimeout", "Mention Web Workers for background execution"]
+      }
+    ]
+  },
+  "coding": {
+    "software_engineer": [
+      {
+        "id": "se_code_001",
+        "difficulty": 5,
+        "parameters": ["nums", "target"],
+        "problem": "Given an array of integers `nums` and an integer `target`, return indices of the two numbers such that they add up to `target`. You may assume that each input would have exactly one solution, and you may not use the same element twice.",
+        "examples": [
+          { "input": "nums = [2,7,11,15], target = 9", "output": "[0,1]" },
+          { "input": "nums = [3,2,4], target = 6", "output": "[1,2]" }
+        ],
+        "test_cases": [
+          { "input": "nums = [2, 7, 11, 15]\ntarget = 9", "expected_output": "[0, 1]" },
+          { "input": "nums = [3, 2, 4]\ntarget = 6", "expected_output": "[1, 2]" },
+          { "input": "nums = [3, 3]\ntarget = 6", "expected_output": "[0, 1]" }
+        ],
+        "concepts": ["Arrays", "Hash Maps"],
+        "language_options": ["python", "javascript"]
+      }
+    ],
+    "data_engineer": [
+      {
+        "id": "de_code_001",
+        "difficulty": 5,
+        "parameters": ["nums"],
+        "problem": "Given an array of integers `nums`, find the contiguous subarray (containing at least one number) which has the largest sum and return its sum.",
+        "examples": [
+          { "input": "nums = [-2,1,-3,4,-1,2,1,-5,4]", "output": "6" },
+          { "input": "nums = [5,4,-1,7,8]", "output": "23" }
+        ],
+        "test_cases": [
+          { "input": "nums = [-2, 1, -3, 4, -1, 2, 1, -5, 4]", "expected_output": "6" },
+          { "input": "nums = [5, 4, -1, 7, 8]", "expected_output": "23" },
+          { "input": "nums = [-1]", "expected_output": "-1" }
+        ],
+        "concepts": ["Arrays", "Dynamic Programming", "Kadane's Algorithm"],
+        "language_options": ["python", "javascript"]
+      }
+    ],
+    "ml_engineer": [
+      {
+        "id": "ml_code_001",
+        "difficulty": 5,
+        "parameters": ["prices"],
+        "problem": "Given an array of numbers representing daily stock prices, find the maximum profit you can achieve by buying and selling a single stock once. Note that you must buy before you sell.",
+        "examples": [
+          { "input": "prices = [7,1,5,3,6,4]", "output": "5" },
+          { "input": "prices = [7,6,4,3,1]", "output": "0" }
+        ],
+        "test_cases": [
+          { "input": "prices = [7, 1, 5, 3, 6, 4]", "expected_output": "5" },
+          { "input": "prices = [7, 6, 4, 3, 1]", "expected_output": "0" },
+          { "input": "prices = [1, 2, 10]", "expected_output": "9" }
+        ],
+        "concepts": ["Arrays", "Greedy Algorithm"],
+        "language_options": ["python", "javascript"]
+      }
+    ],
+    "fullstack_developer": [
+      {
+        "id": "fs_code_001",
+        "difficulty": 5,
+        "parameters": ["query"],
+        "problem": "Write a function that parses a query string into a nested object. The query string may contain dot notation for nested keys (e.g., 'user.name.first=John&user.name.last=Doe&id=123'). Values should be URL decoded.",
+        "examples": [
+          { "input": "user.name.first=John&user.name.last=Doe&id=123", "output": "{\"user\": {\"name\": {\"first\": \"John\", \"last\": \"Doe\"}}, \"id\": \"123\"}" },
+          { "input": "a.b=1&a.c=2", "output": "{\"a\": {\"b\": \"1\", \"c\": \"2\"}}" }
+        ],
+        "test_cases": [
+          { "input": "query = 'user.name.first=John&user.name.last=Doe&id=123'", "expected_output": "{\"user\": {\"name\": {\"first\": \"John\", \"last\": \"Doe\"}}, \"id\": \"123\"}" },
+          { "input": "query = 'a.b=1&a.c=2'", "expected_output": "{\"a\": {\"b\": \"1\", \"c\": \"2\"}}" },
+          { "input": "query = 'simple=value'", "expected_output": "{\"simple\": \"value\"}" }
+        ],
+        "concepts": ["Strings", "Recursion", "Object Manipulation"],
+        "language_options": ["javascript", "python"]
+      }
+    ]
+  }
+}

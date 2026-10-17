@@ -1,0 +1,3229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MIT Interview Bot — AI Technical Studio</title>
+  <!-- Vapi Web SDK (WebRTC Audio Stream) via modern ESM -->
+  <script type="module">
+    try {
+      const mod = await import("https://esm.sh/@vapi-ai/web@3.0.0");
+      window.Vapi = mod.default?.default || mod.default || mod;
+      console.log("✓ Vapi Web SDK loaded successfully from esm.sh");
+    } catch (e1) {
+      console.warn("esm.sh load failed, trying jsdelivr +esm:", e1);
+      try {
+        const mod2 = await import("https://cdn.jsdelivr.net/npm/@vapi-ai/web@3.0.0/+esm");
+        window.Vapi = mod2.default?.default || mod2.default || mod2;
+        console.log("✓ Vapi Web SDK loaded successfully from jsdelivr +esm");
+      } catch (e2) {
+        console.error("Failed to load Vapi Web SDK:", e2);
+      }
+    }
+    if (window.Vapi) {
+      window.dispatchEvent(new CustomEvent("vapi-sdk-ready"));
+    }
+  </script>
+  <style>
+    :root {
+      --bg-dark: #0a0f1d;
+      --bg-card: #111827;
+      --bg-card-hover: #1f2937;
+      --border-color: #374151;
+      --text-main: #f9fafb;
+      --text-muted: #9ca3af;
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --primary-glow: rgba(99, 102, 241, 0.25);
+      --accent: #06b6d4;
+      --accent-glow: rgba(6, 182, 212, 0.25);
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--bg-dark);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* Header */
+    header {
+      background: rgba(17, 24, 39, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-color);
+      padding: 14px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      width: 38px;
+      height: 38px;
+      background: linear-gradient(135deg, #6366f1, #06b6d4);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      color: white;
+      font-size: 18px;
+      box-shadow: 0 0 15px var(--primary-glow);
+    }
+
+    .brand-title {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .brand-badge {
+      font-size: 11px;
+      background: rgba(99, 102, 241, 0.2);
+      color: #818cf8;
+      border: 1px solid rgba(99, 102, 241, 0.4);
+      padding: 2px 8px;
+      border-radius: 20px;
+      margin-left: 8px;
+      font-weight: 600;
+    }
+
+    .nav-status {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #1f2937;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      border: 1px solid #374151;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 8px var(--success);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.1); }
+    }
+
+    /* Stepper Navigation */
+    .stepper {
+      display: flex;
+      justify-content: center;
+      gap: 32px;
+      padding: 16px;
+      background: #0f172a;
+      border-bottom: 1px solid #1e293b;
+    }
+
+    .step-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--text-muted);
+      cursor: default;
+      transition: all 0.2s;
+    }
+
+    .step-item.active {
+      color: var(--text-main);
+      font-weight: 600;
+    }
+
+    .step-item.completed {
+      color: var(--success);
+    }
+
+    .step-num {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #1e293b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .step-item.active .step-num {
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 0 10px var(--primary-glow);
+    }
+
+    .step-item.completed .step-num {
+      background: var(--success);
+      color: white;
+    }
+
+    /* Container Views */
+    main {
+      flex: 1;
+      padding: 24px;
+      max-width: 1440px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .view-section {
+      display: none;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    .view-section.active-view {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Cards & Layout */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 24px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .card-subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+
+    /* Form Inputs */
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #e5e7eb;
+    }
+
+    select, input[type="text"] {
+      width: 100%;
+      background: #1f2937;
+      border: 1px solid #374151;
+      color: white;
+      padding: 12px 14px;
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    select:focus, input[type="text"]:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px var(--primary-glow);
+    }
+
+    /* Duration Selector */
+    .duration-pills {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+
+    .duration-pill {
+      background: #1f2937;
+      border: 1px solid #374151;
+      padding: 12px;
+      border-radius: 10px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .duration-pill:hover {
+      border-color: #6366f1;
+    }
+
+    .duration-pill.selected {
+      background: rgba(99, 102, 241, 0.15);
+      border-color: var(--primary);
+      box-shadow: 0 0 12px var(--primary-glow);
+    }
+
+    .duration-time {
+      font-weight: 700;
+      font-size: 15px;
+    }
+
+    .duration-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* Upload Drop Zone */
+    .dropzone {
+      border: 2px dashed #4b5563;
+      border-radius: 12px;
+      padding: 30px 20px;
+      text-align: center;
+      background: rgba(31, 41, 55, 0.4);
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+
+    .dropzone:hover, .dropzone.dragover {
+      border-color: var(--accent);
+      background: rgba(6, 182, 212, 0.08);
+      transform: translateY(-1px);
+    }
+
+    .dropzone input[type="file"] {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      opacity: 0;
+      cursor: pointer;
+      z-index: 10;
+    }
+
+    .dropzone .dropzone-content {
+      pointer-events: none;
+    }
+
+    .drop-icon {
+      font-size: 36px;
+      margin-bottom: 8px;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      padding: 12px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      color: white;
+      box-shadow: 0 4px 14px var(--primary-glow);
+    }
+
+    .btn-primary:hover {
+      opacity: 0.95;
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: #1f2937;
+      color: var(--text-main);
+      border: 1px solid #374151;
+    }
+
+    .btn-secondary:hover {
+      background: #374151;
+    }
+
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.2);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+
+    .btn-danger:hover {
+      background: var(--danger);
+      color: white;
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+    }
+
+    .btn-block {
+      width: 100%;
+    }
+
+    /* Candidate Profile Card */
+    .profile-card {
+      background: #1a2234;
+      border: 1px solid #2d3748;
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 16px;
+    }
+
+    .profile-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .profile-name {
+      font-size: 18px;
+      font-weight: 700;
+      color: white;
+    }
+
+    .pill-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 10px 0;
+    }
+
+    .skill-tag {
+      background: #1f2937;
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 3px 10px;
+      border-radius: 14px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    /* STUDIO VIEW (Step 2) — 1-on-1 Modern Interview Call Room */
+    .studio-container {
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - 170px);
+      gap: 16px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .studio-container.split-view {
+      display: grid;
+      grid-template-columns: 1fr 1.15fr;
+      gap: 20px;
+    }
+
+    /* LeetCode-style layout used once the interviewer enters the coding round. */
+    .studio-container.coding-mode { display: block; }
+    .studio-container.coding-mode .call-pane { display: none; }
+    .studio-container.coding-mode .editor-pane {
+      height: 100%;
+      display: grid !important;
+      grid-template-columns: minmax(300px, 0.85fr) minmax(420px, 1.15fr);
+      grid-template-rows: minmax(0, 1fr) auto;
+    }
+    .studio-container.coding-mode .problem-box {
+      grid-column: 1;
+      grid-row: 1 / 3;
+      max-height: none;
+      border-right: 1px solid var(--border-color);
+      border-bottom: none;
+    }
+    .studio-container.coding-mode .code-editor-wrapper { grid-column: 2; grid-row: 1; min-height: 0; }
+    .studio-container.coding-mode .runner-console { grid-column: 2; grid-row: 2; }
+    @media (max-width: 850px) {
+      .studio-container.coding-mode .editor-pane { grid-template-columns: 1fr; grid-template-rows: auto minmax(320px, 1fr) auto; overflow-y: auto; }
+      .studio-container.coding-mode .problem-box, .studio-container.coding-mode .code-editor-wrapper, .studio-container.coding-mode .runner-console { grid-column: 1; }
+      .studio-container.coding-mode .problem-box { grid-row: 1; border-right: none; border-bottom: 1px solid var(--border-color); }
+      .studio-container.coding-mode .code-editor-wrapper { grid-row: 2; }
+      .studio-container.coding-mode .runner-console { grid-row: 3; }
+    }
+
+    /* 1-on-1 Call Pane */
+    .call-pane {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      flex: 1;
+      position: relative;
+    }
+
+    .console-header {
+      padding: 14px 20px;
+      background: #1a2234;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .split-toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      background: #1f2937;
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .split-toggle-btn:hover, .split-toggle-btn.active {
+      background: rgba(56, 189, 248, 0.2);
+      border-color: #38bdf8;
+      color: #7dd3fc;
+    }
+
+    .timer-display {
+      font-family: var(--font-mono);
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--accent);
+      background: #0b1120;
+      padding: 4px 12px;
+      border-radius: 6px;
+      border: 1px solid #1e293b;
+    }
+
+    /* Hands-Free Voice Helper Banner */
+    .hands-free-banner {
+      background: rgba(16, 185, 129, 0.08);
+      border-bottom: 1px solid rgba(16, 185, 129, 0.18);
+      padding: 8px 16px;
+      font-size: 12px;
+      color: #6ee7b7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .pulse-ring-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 8px #10b981;
+      animation: pulse 1.5s infinite;
+    }
+
+    /* 1-on-1 Conference Tiles Grid */
+    .interview-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      padding: 16px;
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+    }
+
+    .studio-container.split-view .interview-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .conference-tile {
+      background: #0a0f1d;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    .tile-header {
+      padding: 10px 14px;
+      background: rgba(15, 23, 42, 0.85);
+      border-bottom: 1px solid #1e293b;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .tile-user {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .user-badge {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 12px;
+    }
+
+    .ai-badge {
+      background: linear-gradient(135deg, #6366f1, #06b6d4);
+      color: white;
+      box-shadow: 0 0 10px rgba(99, 102, 241, 0.4);
+    }
+
+    .candidate-badge {
+      background: linear-gradient(135deg, #059669, #10b981);
+      color: white;
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+    }
+
+    .user-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #f8fafc;
+    }
+
+    .user-role {
+      font-size: 11px;
+      color: #94a3b8;
+    }
+
+    .voice-state-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .voice-state-speaking {
+      background: rgba(99, 102, 241, 0.2);
+      color: #a5b4fc;
+      border: 1px solid #6366f1;
+    }
+
+    .voice-state-listening {
+      background: rgba(16, 185, 129, 0.2);
+      color: #6ee7b7;
+      border: 1px solid #10b981;
+    }
+
+    .voice-state-idle {
+      background: rgba(156, 163, 175, 0.2);
+      color: #d1d5db;
+      border: 1px solid #4b5563;
+    }
+
+    .tile-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 180px;
+      position: relative;
+      padding: 16px;
+    }
+
+    /* AI Pulsing Glowing Voice Orb */
+    .ai-orb-wrapper {
+      position: relative;
+      width: 130px;
+      height: 130px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 10px 0;
+    }
+
+    .ai-orb {
+      width: 82px;
+      height: 82px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #818cf8, #4f46e5 60%, #312e81 100%);
+      box-shadow: 0 0 35px rgba(99, 102, 241, 0.6), inset 0 0 16px rgba(255, 255, 255, 0.35);
+      position: relative;
+      z-index: 2;
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+    }
+
+    .ai-orb.speaking {
+      animation: orbPulse 1.2s infinite ease-in-out;
+      box-shadow: 0 0 50px rgba(99, 102, 241, 0.9), 0 0 80px rgba(6, 182, 212, 0.5);
+    }
+
+    .ai-orb-ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 1.5px solid rgba(99, 102, 241, 0.35);
+      pointer-events: none;
+    }
+
+    .ai-orb-ring.ring-1 {
+      width: 105px;
+      height: 105px;
+      animation: ringExpand 2.2s infinite ease-out;
+    }
+
+    .ai-orb-ring.ring-2 {
+      width: 125px;
+      height: 125px;
+      animation: ringExpand 2.2s infinite ease-out 0.7s;
+    }
+
+    @keyframes orbPulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.12); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes ringExpand {
+      0% { transform: scale(0.8); opacity: 0.8; }
+      100% { transform: scale(1.35); opacity: 0; }
+    }
+
+    .tile-wave-canvas {
+      width: 100%;
+      height: 36px;
+      margin-top: 8px;
+    }
+
+    /* Candidate Visualizer & Video */
+    .candidate-avatar-wrapper {
+      position: relative;
+      width: 130px;
+      height: 130px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 10px 0;
+    }
+
+    .candidate-ring-glow {
+      position: absolute;
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      border: 2px solid #10b981;
+      box-shadow: 0 0 25px rgba(16, 185, 129, 0.5);
+      opacity: 0.3;
+      transition: opacity 0.15s ease;
+    }
+
+    .candidate-avatar-circle {
+      width: 82px;
+      height: 82px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #059669, #10b981);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      font-weight: 700;
+      color: white;
+      box-shadow: 0 0 25px rgba(16, 185, 129, 0.4);
+      position: relative;
+      z-index: 2;
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+    }
+
+    .candidate-avatar-circle.speaking {
+      box-shadow: 0 0 45px rgba(16, 185, 129, 0.9), 0 0 70px rgba(52, 211, 153, 0.6);
+      transform: scale(1.08);
+    }
+
+    .candidate-video-stream {
+      width: 100%;
+      height: 100%;
+      max-height: 220px;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+
+    .candidate-audio-status {
+      font-size: 11.5px;
+      color: #94a3b8;
+      margin-top: 6px;
+    }
+
+    /* Live Subtitles & Captions Bar */
+    .tile-captions {
+      background: rgba(15, 23, 42, 0.95);
+      border-top: 1px solid #1e293b;
+      padding: 10px 14px;
+      text-align: left;
+    }
+
+    .captions-label {
+      font-size: 10px;
+      font-weight: 800;
+      color: #64748b;
+      letter-spacing: 0.6px;
+      margin-bottom: 4px;
+    }
+
+    .captions-text {
+      font-size: 13px;
+      line-height: 1.5;
+      color: #f1f5f9;
+      min-height: 38px;
+      max-height: 70px;
+      overflow-y: auto;
+    }
+
+    /* Floating Bottom Call Dock (Google Meet / Zoom style) */
+    .call-dock {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 12px 18px;
+      background: rgba(17, 24, 39, 0.92);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid var(--border-color);
+      z-index: 20;
+    }
+
+    .dock-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 16px;
+      border-radius: 24px;
+      background: #1f2937;
+      color: #f9fafb;
+      border: 1px solid #374151;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+
+    .dock-btn:hover {
+      background: #374151;
+      transform: translateY(-1px);
+    }
+
+    .dock-btn svg {
+      flex-shrink: 0;
+    }
+
+    .dock-btn.active-mic {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: #10b981;
+      color: #34d399;
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.35);
+    }
+
+    .dock-btn.muted-mic {
+      background: rgba(239, 68, 68, 0.15);
+      border-color: #ef4444;
+      color: #f87171;
+    }
+
+    .dock-btn.end-btn {
+      background: #dc2626;
+      border-color: #ef4444;
+      color: white;
+    }
+
+    .dock-btn.end-btn:hover {
+      background: #b91c1c;
+      box-shadow: 0 0 14px rgba(220, 38, 38, 0.5);
+    }
+
+    /* Text Drawer (Collapsible Fallback) */
+    .text-fallback-drawer {
+      background: #0f172a;
+      border-top: 1px solid var(--border-color);
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 200px;
+    }
+
+    .drawer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .close-drawer-btn {
+      background: none;
+      border: none;
+      color: #94a3b8;
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    .chat-stream-mini {
+      max-height: 100px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .candidate-input-bar {
+      display: flex;
+      gap: 8px;
+    }
+
+    .chat-bubble {
+      max-width: 88%;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .chat-interviewer {
+      align-self: flex-start;
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #f1f5f9;
+      border-bottom-left-radius: 2px;
+    }
+
+    .chat-candidate {
+      align-self: flex-end;
+      background: linear-gradient(135deg, #4f46e5, #4338ca);
+      color: white;
+      border-bottom-right-radius: 2px;
+    }
+
+    .chat-speaker {
+      font-size: 10px;
+      font-weight: 700;
+      margin-bottom: 2px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Right Coding Workspace */
+    .editor-pane {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .problem-box {
+      padding: 18px 24px;
+      background: #131d2e;
+      border-bottom: 1px solid var(--border-color);
+      max-height: 220px;
+      overflow-y: auto;
+    }
+
+    .problem-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .difficulty-badge {
+      font-size: 11px;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      background: rgba(245, 158, 11, 0.2);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.4);
+    }
+
+    .code-editor-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .editor-toolbar {
+      padding: 10px 18px;
+      background: #0f172a;
+      border-bottom: 1px solid #1e293b;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .editor-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .code-textarea {
+      flex: 1;
+      background: #090d16;
+      color: #e2e8f0;
+      font-family: var(--font-mono);
+      font-size: 13.5px;
+      line-height: 1.6;
+      padding: 16px;
+      border: none;
+      outline: none;
+      resize: none;
+      tab-size: 4;
+      white-space: pre;
+    }
+
+    /* Test Case Runner Console */
+    .runner-console {
+      height: 180px;
+      background: #0b101b;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .runner-tabs {
+      display: flex;
+      background: #111827;
+      border-bottom: 1px solid #1f2937;
+      padding: 0 12px;
+    }
+
+    .runner-tab {
+      padding: 8px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+    }
+
+    .runner-tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    .runner-output {
+      flex: 1;
+      padding: 12px 16px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      overflow-y: auto;
+      color: #d1d5db;
+    }
+
+    .test-pass {
+      color: #34d399;
+      font-weight: 600;
+    }
+
+    .test-fail {
+      color: #f87171;
+      font-weight: 600;
+    }
+
+    /* Evaluation View (Step 3) */
+    .eval-container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin: 20px 0;
+    }
+
+    .metric-card {
+      background: #162032;
+      border: 1px solid #283548;
+      border-radius: 12px;
+      padding: 18px;
+      text-align: center;
+    }
+
+    .metric-value {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--accent);
+      margin: 6px 0;
+    }
+
+    .transcript-review-box {
+      background: #0d1322;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 20px;
+      max-height: 400px;
+      overflow-y: auto;
+      margin-top: 16px;
+    }
+
+    /* Modal / Alerts */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #1f2937;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 10px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      border-left: 4px solid var(--accent);
+      display: none;
+      font-size: 13px;
+      font-weight: 500;
+      z-index: 100;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header>
+    <div class="brand">
+      <div class="brand-logo">MIT</div>
+      <div>
+        <span class="brand-title">Interview Bot AI Engine</span>
+        <span class="brand-badge">Voice + Coding</span>
+      </div>
+    </div>
+    <div class="nav-status">
+      <div class="status-pill">
+        <span class="status-dot"></span>
+        <span id="backendStatus">FastAPI Engine: Active</span>
+      </div>
+      <button class="btn btn-secondary" onclick="resetStudio()">New Interview</button>
+    </div>
+  </header>
+
+  <!-- Step Navigation Bar -->
+  <div class="stepper">
+    <div class="step-item active" id="stepIndicator1">
+      <div class="step-num">1</div>
+      <span>Profile & Resume</span>
+    </div>
+    <div class="step-item" id="stepIndicator2">
+      <div class="step-num">2</div>
+      <span>Live Technical Studio</span>
+    </div>
+    <div class="step-item" id="stepIndicator3">
+      <div class="step-num">3</div>
+      <span>Evaluation & Transcript</span>
+    </div>
+  </div>
+
+  <main>
+
+    <!-- ========================================== -->
+    <!-- VIEW 1: Onboarding & Resume Upload -->
+    <!-- ========================================== -->
+    <section id="view1" class="view-section active-view">
+      <div class="grid-2">
+        
+        <!-- Left: Configuration Form -->
+        <div class="card">
+          <h2 class="card-title">Setup Interview Session</h2>
+          <p class="card-subtitle">Choose the target role. Every session uses 3 minutes of interview and up to 20 minutes of coding.</p>
+
+          <div class="form-group">
+            <label for="roleSelect">Target Engineering Role</label>
+            <select id="roleSelect">
+              <option value="Software Engineer">Software Engineer</option>
+              <option value="Data Engineer">Data Engineer</option>
+              <option value="Machine Learning Engineer">Machine Learning Engineer</option>
+              <option value="Full Stack Developer">Full Stack Developer</option>
+            </select>
+          </div>
+
+          <div class="form-group"><label>Session Format</label><div class="duration-pill selected"><div class="duration-time">23 Minutes Total</div><div class="duration-desc">3m interview · up to 20m coding challenge</div></div></div>
+
+          <div class="form-group" style="margin-top: 24px;">
+            <label>Candidate Resume (PDF)</label>
+            <div class="dropzone" id="dropzone">
+              <input type="file" id="resumeFileInput" accept=".pdf" onchange="handleFileSelected(event)">
+              <div class="dropzone-content">
+                <div class="drop-icon">📄</div>
+                <div style="font-weight: 600; font-size: 14px;" id="dropLabel">Click to browse or drag &amp; drop PDF resume</div>
+                <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;" id="dropSubLabel">PDF automatically uploads &amp; analyzes immediately upon selection</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 10px; margin-top: 14px;">
+            <button class="btn btn-secondary btn-block" onclick="loadDemoCandidate()" title="Instant test without uploading any file">
+              ⚡ 1-Click Demo Profile (Instant)
+            </button>
+            <button class="btn btn-primary btn-block" id="uploadBtn" onclick="uploadResume()">
+              Upload &amp; Analyze Resume
+            </button>
+          </div>
+        </div>
+
+        <!-- Right: Candidate Profile Preview -->
+        <div class="card">
+          <h2 class="card-title">Candidate Profile & Skill Extraction</h2>
+          <p class="card-subtitle">AI-extracted analysis used by the interviewer dynamic prompt engine.</p>
+
+          <div id="emptyProfileState" style="text-align: center; padding: 60px 20px; color: var(--text-muted);">
+            <div style="font-size: 42px; margin-bottom: 12px;">👤</div>
+            <div style="font-weight: 600;">No Candidate Loaded</div>
+            <div style="font-size: 13px; margin-top: 6px;">Upload a PDF resume or click "Load Sample Technical Profile" to inspect skills.</div>
+          </div>
+
+          <div id="loadedProfileState" style="display: none;">
+            <div class="profile-card">
+              <div class="profile-header">
+                <div>
+                  <div class="profile-name" id="profName">Aditya Kumar</div>
+                  <div style="font-size: 12px; color: var(--accent);" id="profRole">Data Engineer Candidate</div>
+                </div>
+                <span class="badge" style="background:#1e293b; padding:4px 10px; border-radius:20px; font-size:12px;" id="profExp">
+                  3 Years Exp
+                </span>
+              </div>
+
+              <div style="font-size: 12px; font-weight: 600; color: #94a3b8; margin-top: 12px;">KEY TECHNICAL SKILLS</div>
+              <div class="pill-tags" id="profSkills">
+                <!-- Skill tags injected -->
+              </div>
+
+              <div style="font-size: 12px; font-weight: 600; color: #94a3b8; margin-top: 12px;">AREAS TO PROBE</div>
+              <div class="pill-tags" id="profProbe">
+                <!-- Weak areas injected -->
+              </div>
+
+              <div style="font-size: 12px; font-weight: 600; color: #94a3b8; margin-top: 12px;">RESUME EXECUTIVE SUMMARY</div>
+              <p style="font-size: 13px; color: #cbd5e1; line-height: 1.5; margin-top: 4px;" id="profSummary">
+                Candidate profile summary.
+              </p>
+            </div>
+
+            <div style="margin-top: 24px;">
+              <button class="btn btn-primary btn-block" id="launchInterviewBtn" style="font-size: 16px; padding: 14px;" onclick="startInterviewStudio()">
+                🎙️ Launch Live Interview Studio &rarr;
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- VIEW 2: Live Interview Studio (Voice + Code) -->
+    <!-- ========================================== -->
+    <section id="view2" class="view-section">
+      <div class="studio-container" id="studioContainer">
+        
+        <!-- Left: 1-on-1 Interview Call Room -->
+        <div class="call-pane" id="callPane">
+          <div class="console-header">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div class="user-badge ai-badge" style="width: 28px; height: 28px; font-size: 11px;">AI</div>
+              <div>
+                <div style="font-weight: 700; font-size: 14px;" id="studioCandidateTitle">Candidate Technical Interview</div>
+                <div style="font-size: 11px; color: var(--accent); display: flex; align-items: center; gap: 6px;" id="studioPhase">
+                  <span class="pulse-ring-dot"></span> Phase 1: 1-on-1 Conversational Interview
+                </div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <button class="split-toggle-btn" id="headerSplitToggle" onclick="toggleCodingSplit()" title="Toggle Code Challenge Workspace">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="16 18 22 12 16 6"/>
+                  <polyline points="8 6 2 12 8 18"/>
+                </svg>
+                <span id="splitToggleText">Open Code Editor</span>
+              </button>
+              <div class="timer-display" id="studioTimer">23:00</div>
+            </div>
+          </div>
+
+          <!-- Hands-Free Audio Instruction Banner -->
+          <div class="hands-free-banner">
+            <span class="pulse-ring-dot"></span>
+            <span><strong>Continuous 1-on-1 Voice Mode:</strong> Speak naturally into your microphone — no buttons to press to talk!</span>
+          </div>
+
+          <!-- 1-on-1 Conference Video & Voice Tiles Grid -->
+          <div class="interview-grid">
+            
+            <!-- Tile 1: AI Technical Interviewer -->
+            <div class="conference-tile ai-tile">
+              <div class="tile-header">
+                <div class="tile-user">
+                  <div class="user-badge ai-badge">AI</div>
+                  <div>
+                    <div class="user-name">Dr. Alex Vance</div>
+                    <div class="user-role">MIT Senior Technical Interviewer</div>
+                  </div>
+                </div>
+                <div class="voice-state-badge voice-state-speaking" id="aiVoiceBadge">
+                  <span class="status-dot"></span>
+                  <span id="voiceBadgeText">AI Interviewer Speaking...</span>
+                </div>
+              </div>
+
+              <div class="tile-body">
+                <!-- High-Tech Animated Glowing AI Voice Orb -->
+                <div class="ai-orb-wrapper">
+                  <div class="ai-orb-ring ring-1"></div>
+                  <div class="ai-orb-ring ring-2"></div>
+                  <div class="ai-orb" id="aiVoiceOrb"></div>
+                </div>
+                <canvas id="waveCanvas" class="tile-wave-canvas"></canvas>
+              </div>
+
+              <!-- Live Interviewer Captions -->
+              <div class="tile-captions">
+                <div class="captions-label">INTERVIEWER (SPEAKING):</div>
+                <div class="captions-text" id="aiCaptionText">
+                  "Hello! Welcome to your technical interview. Let's begin with your technical background and experience."
+                </div>
+              </div>
+            </div>
+
+            <!-- Tile 2: Candidate (You) -->
+            <div class="conference-tile candidate-tile">
+              <div class="tile-header">
+                <div class="tile-user">
+                  <div class="user-badge candidate-badge" id="candidateInitials">ME</div>
+                  <div>
+                    <div class="user-name" id="candidateTileName">Candidate (You)</div>
+                    <div class="user-role">Applicant</div>
+                  </div>
+                </div>
+                <div class="voice-state-badge voice-state-listening" id="candidateVoiceBadge">
+                  <span class="status-dot"></span>
+                  <span id="candidateBadgeText">Mic Live (Continuous)</span>
+                </div>
+              </div>
+
+              <div class="tile-body">
+                <!-- Optional Candidate Video Camera Stream -->
+                <video id="candidateVideo" autoplay playsinline muted style="display: none;" class="candidate-video-stream"></video>
+                
+                <!-- Candidate Audio Avatar Box -->
+                <div class="candidate-avatar-wrapper" id="candidateAvatarBox">
+                  <div class="candidate-ring-glow" id="candidateRingGlow"></div>
+                  <div class="candidate-avatar-circle" id="candidateAvatarCircle">
+                    <span id="candidateAvatarLetter">C</span>
+                  </div>
+                </div>
+                <div class="candidate-audio-status" id="candidateAudioStatus">
+                  Microphone is actively listening to your voice
+                </div>
+              </div>
+
+              <!-- Live Candidate Captions -->
+              <div class="tile-captions">
+                <div class="captions-label">YOU (CANDIDATE):</div>
+                <div class="captions-text" id="candidateCaptionText">
+                  (Speak into your microphone — your words will transcribe here in real-time)
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Floating Modern Call Control Dock (Google Meet / Zoom style) -->
+          <div class="call-dock">
+            <!-- Mic Control -->
+            <button class="dock-btn active-mic" id="dockMicBtn" onclick="toggleMic()" title="Toggle Microphone">
+              <svg id="micSvgIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                <line x1="12" y1="19" x2="12" y2="23"/>
+                <line x1="8" y1="23" x2="16" y2="23"/>
+              </svg>
+              <span id="micBtnLabel">Mic Live</span>
+            </button>
+
+            <!-- Camera Video Toggle -->
+            <button class="dock-btn" id="dockCamBtn" onclick="toggleCamera()" title="Toggle Camera Video Preview">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="23 7 16 12 23 17 23 7"/>
+                <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+              </svg>
+              <span id="camBtnLabel">Camera Off</span>
+            </button>
+
+            <!-- Coding Workspace Toggle -->
+            <button class="dock-btn" id="dockCodeBtn" onclick="toggleCodingSplit()" title="Toggle Code Challenge Workspace">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="16 18 22 12 16 6"/>
+                <polyline points="8 6 2 12 8 18"/>
+              </svg>
+              <span>Code Editor</span>
+            </button>
+
+            <!-- Text Chat / Fallback Drawer Toggle -->
+            <button class="dock-btn" id="dockChatToggleBtn" onclick="toggleTextDrawer()" title="Optional text drawer if mic is not working">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              <span>Text Drawer</span>
+            </button>
+
+            <!-- Next Question -->
+            <button class="dock-btn" onclick="triggerNextQuestion()" title="Advance to next question">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="5 4 15 12 5 20 5 4"/>
+                <line x1="19" y1="5" x2="19" y2="19"/>
+              </svg>
+              <span>Next Question</span>
+            </button>
+
+            <!-- End Call -->
+            <button class="dock-btn end-btn" onclick="finishInterview()" title="End Interview Call">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-6-6 19.8 19.8 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/>
+                <line x1="23" y1="1" x2="1" y2="23"/>
+              </svg>
+              <span>End Call</span>
+            </button>
+          </div>
+
+          <!-- Optional Collapsible Text Fallback Drawer (Hidden by default) -->
+          <div class="text-fallback-drawer" id="textFallbackDrawer" style="display: none;">
+            <div class="drawer-header">
+              <span>Text Response Fallback (Optional)</span>
+              <button class="close-drawer-btn" onclick="toggleTextDrawer()">&times;</button>
+            </div>
+            <div class="chat-stream-mini" id="chatStream"></div>
+            <div class="candidate-input-bar">
+              <input type="text" id="candidateTextInput" placeholder="Type response if mic is unavailable..." onkeydown="handleTextKey(event)">
+              <button class="btn btn-secondary" onclick="sendCandidateText()">Send</button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Right: Technical Coding Environment -->
+        <div class="editor-pane" id="editorPane" style="display: none;">
+          
+          <!-- Problem Box -->
+          <div class="problem-box">
+            <div class="problem-header">
+              <div style="font-weight: 700; font-size: 15px;" id="codingTitle">Coding Challenge</div>
+              <span class="difficulty-badge" id="codingDifficulty">Difficulty: Medium</span>
+            </div>
+            <p style="font-size: 13px; color: #cbd5e1; line-height: 1.6; margin-bottom: 12px; white-space: pre-wrap;" id="codingProblem">
+              Loading technical challenge problem statement...
+            </p>
+            <div style="font-size: 12px; color: #94a3b8; font-family: var(--font-mono); background: #0a0f1d; padding: 10px 12px; border-radius: 6px; white-space: pre-wrap;" id="codingExample">
+              Example: Loading...
+            </div>
+          </div>
+
+          <!-- Code Editor Workspace -->
+          <div class="code-editor-wrapper">
+            <div class="editor-toolbar">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 12px; font-weight: 600; color: #94a3b8;">Language:</span>
+                <select id="codeLanguage" style="width: auto; padding: 4px 10px; font-size: 12px;" onchange="updateLanguageTemplate()">
+                  <option value="python">Python 3</option>
+                  <option value="javascript">JavaScript</option>
+                </select>
+              </div>
+              <div class="editor-actions">
+                <button class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px;" onclick="resetCodeTemplate()">Reset Code</button>
+                <button class="btn btn-primary" style="font-size: 12px; padding: 6px 14px;" onclick="runCode()">▶ Run Test Cases</button>
+                <button class="btn btn-success" style="font-size: 12px; padding: 6px 14px;" onclick="submitSolution()">✓ Submit Solution</button>
+              </div>
+            </div>
+
+            <!-- Code Text Area -->
+            <textarea class="code-textarea" id="codeEditor" spellcheck="false" oninput="scheduleCodeContext()" placeholder="Write your coding solution here..."></textarea>
+          </div>
+
+          <!-- Test Runner & Console Output -->
+          <div class="runner-console">
+            <div class="runner-tabs">
+              <div class="runner-tab active" onclick="switchRunnerTab('results')">Test Results</div>
+              <div class="runner-tab" onclick="switchRunnerTab('details')">Test Cases Data</div>
+            </div>
+            <div class="runner-output" id="runnerOutput">
+              <span style="color: #64748b;">Click "▶ Run Test Cases" to execute your solution against test cases.</span>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- VIEW 3: Post-Interview Evaluation & Report -->
+    <!-- ========================================== -->
+    <section id="view3" class="view-section">
+      <div class="eval-container">
+        <div class="card">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <h2 class="card-title">Interview Completed &amp; Evaluated</h2>
+              <p class="card-subtitle">Detailed candidate transcript and performance breakdown.</p>
+            </div>
+            <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #10b981; padding: 6px 14px; border-radius: 20px; font-weight: 700; font-size: 13px;">
+              STATUS: COMPLETED
+            </span>
+          </div>
+
+          <!-- Metric Cards -->
+          <div class="metric-grid">
+            <div class="metric-card">
+              <div style="font-size: 12px; color: var(--text-muted);">OVERALL SCORE</div>
+              <div class="metric-value" id="evalScore">—</div>
+              <div style="font-size: 11px; color: var(--text-muted);">Evidence-based; no hiring decision</div>
+            </div>
+            <div class="metric-card">
+              <div style="font-size: 12px; color: var(--text-muted);">CALL DURATION</div>
+              <div class="metric-value" id="evalDuration">23:00</div>
+              <div style="font-size: 11px; color: var(--accent);">Completed on Schedule</div>
+            </div>
+            <div class="metric-card">
+              <div style="font-size: 12px; color: var(--text-muted);">CODING CHALLENGE</div>
+              <div class="metric-value" id="evalCoding">—</div>
+              <div id="evalCodingStatus" style="font-size: 11px; color: var(--text-muted);">Not submitted</div>
+            </div>
+          </div>
+
+          <div id="evaluationDetails" style="margin-top:20px; padding:16px; border:1px solid var(--border); border-radius:10px; background:rgba(15,23,42,.45);">
+            <div style="display:flex; gap:24px; flex-wrap:wrap; margin-bottom:12px;">
+              <span>Technical: <strong id="evalTechnical">—</strong></span>
+              <span>Communication: <strong id="evalCommunication">—</strong></span>
+            </div>
+            <p id="evalSummary" style="color:var(--text-muted); line-height:1.55;">Evaluation unavailable.</p>
+            <div id="evalEvidence"></div>
+          </div>
+
+          <!-- Complete Dialogue Transcript -->
+          <h3 style="font-size: 14px; margin-top: 24px; color: #e2e8f0;">Full Interview Dialogue Transcript</h3>
+          <div class="transcript-review-box" id="transcriptReviewBox">
+            <!-- Transcript items injected -->
+          </div>
+
+          <div style="display: flex; gap: 12px; margin-top: 24px;">
+            <button class="btn btn-primary" onclick="downloadTranscriptJSON()">
+              📥 Download Transcript (JSON)
+            </button>
+            <button class="btn btn-secondary" onclick="downloadReportTXT()">
+              📋 Export Evaluation Report (.txt)
+            </button>
+            <button class="btn btn-secondary" onclick="resetStudio()">
+              ↺ Start New Interview
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="toast">Action notification</div>
+
+  <!-- Client Application Logic -->
+  <script>
+    // Global State
+    let currentSession = {
+      role: "Software Engineer",
+      duration_mins: 23,
+      session_key: null,
+      call_id: null,
+      candidate_name: "Candidate",
+      analysis: null,
+      system_prompt: "",
+      coding_question: null,
+      code_result: null,
+      evaluation: null
+    };
+
+    let interviewTimer = null;
+    let timerDeadlineMs = null;
+    let interviewRunId = 0;
+    let secondsLeft = 300;
+    let totalSeconds = 300;
+    let isMicRecording = false;
+    let speechRecognition = null;
+    let currentQuestions = [];
+    let currentQuestionIndex = 0;
+    let transcriptMessages = [];
+
+    // Wave Canvas
+    const canvas = document.getElementById("waveCanvas");
+    const ctx = canvas ? canvas.getContext("2d") : null;
+    let waveStep = 0;
+    let isSpeaking = false;
+    let vapiClient = null;
+    let isVapiMode = false;
+    let vapiVolume = 0;
+    let isFinishingInterview = false;
+    let codingModeActive = false;
+    let codingTransitionRequested = false;
+    let codingTransitionFallbackTimer = null;
+    let codeContextTimer = null;
+    let codeCheckpointTimer = null;
+    let codingStartedAt = 0;
+    let codingCheckpointAsked = false;
+    let lastCodeContext = "";
+    let vapiLoadPromise = null;
+    let evaluationPromise = null;
+    let evaluationFingerprint = "";
+    let evaluationCodeFingerprint = "";
+
+    // Initialize On Load
+    window.addEventListener("DOMContentLoaded", async () => {
+      fetchRoles();
+      setupSpeech();
+      startWaveAnimation();
+      setupDropzone();
+      // Fetch and parse the SDK while the candidate prepares their profile,
+      // instead of placing this network cost on the Launch button.
+      void ensureVapiLoaded();
+    });
+
+    // Setup Drag & Drop on Dropzone
+    function setupDropzone() {
+      const dropzone = document.getElementById("dropzone");
+      if (!dropzone) return;
+
+      ["dragenter", "dragover"].forEach(eventName => {
+        dropzone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dropzone.classList.add("dragover");
+        }, false);
+      });
+
+      ["dragleave", "drop"].forEach(eventName => {
+        dropzone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dropzone.classList.remove("dragover");
+        }, false);
+      });
+
+      dropzone.addEventListener("drop", (e) => {
+        const dt = e.dataTransfer;
+        const files = dt?.files;
+        if (files && files.length > 0) {
+          processFileSelection(files[0]);
+        }
+      });
+    }
+
+    // 1. Roles Loading
+    async function fetchRoles() {
+      try {
+        const res = await fetch("/resume/roles");
+        const data = await res.json();
+        if (data.success && data.data.roles) {
+          const select = document.getElementById("roleSelect");
+          select.innerHTML = "";
+          data.data.roles.forEach(role => {
+            const opt = document.createElement("option");
+            opt.value = role;
+            opt.textContent = role;
+            select.appendChild(opt);
+          });
+        }
+      } catch (e) {
+        console.warn("Could not fetch roles from server:", e);
+      }
+    }
+
+    // Duration Picker
+    function selectDuration(mins, el) {
+      document.querySelectorAll(".duration-pill").forEach(p => p.classList.remove("selected"));
+      el.classList.add("selected");
+      currentSession.duration_mins = 23;
+      totalSeconds = 23 * 60;
+      secondsLeft = totalSeconds;
+    }
+
+    // File Selection & Automatic Upload
+    let selectedFile = null;
+    function handleFileSelected(event) {
+      const file = event.target.files[0];
+      if (file) {
+        processFileSelection(file);
+      }
+    }
+
+    async function processFileSelection(file) {
+      if (!file.name.toLowerCase().endsWith(".pdf")) {
+        showToast("⚠️ Please select a valid PDF file (.pdf)");
+        return;
+      }
+      selectedFile = file;
+      document.getElementById("dropLabel").textContent = `📄 Selected: ${file.name} (${Math.round(file.size / 1024)} KB)`;
+      const sub = document.getElementById("dropSubLabel");
+      if (sub) sub.textContent = "Analyzing skills and extracting experience...";
+      
+      // Auto-upload immediately so user never has to search for a second button!
+      await uploadResume();
+    }
+
+    // Upload Resume
+    async function uploadResume() {
+      if (!selectedFile) {
+        // If clicked without picking file, open file dialog!
+        const input = document.getElementById("resumeFileInput");
+        if (input) input.click();
+        return;
+      }
+
+      const role = document.getElementById("roleSelect").value;
+      const btn = document.getElementById("uploadBtn");
+      if (btn) {
+        btn.textContent = "Analyzing Resume...";
+        btn.disabled = true;
+      }
+
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+      formData.append("role", role);
+
+      try {
+        const res = await fetch("/resume/upload", {
+          method: "POST",
+          body: formData
+        });
+        const data = await res.json();
+        if (data.success) {
+          currentSession.session_key = data.data.session_key;
+          currentSession.candidate_name = data.data.candidate_name;
+          currentSession.role = role;
+          currentSession.analysis = data.data.analysis;
+          renderProfileCard(data.data.analysis);
+          showToast(`✓ Resume analyzed for ${data.data.candidate_name}!`);
+          const sub = document.getElementById("dropSubLabel");
+          if (sub) sub.textContent = "✓ Resume analyzed successfully. Ready to start!";
+        } else {
+          showToast("Upload Error: " + data.error);
+        }
+      } catch (err) {
+        showToast("Failed to upload resume: " + err.message);
+      } finally {
+        if (btn) {
+          btn.textContent = "Upload & Analyze Resume";
+          btn.disabled = false;
+        }
+      }
+    }
+
+    // Load Demo Profile (Instant 1-Click Test)
+    async function loadDemoCandidate() {
+      const role = document.getElementById("roleSelect").value;
+      const formData = new FormData();
+      formData.append("role", role);
+      formData.append("candidate_name", "Aditya Sharma");
+
+      try {
+        const res = await fetch("/resume/demo", {
+          method: "POST",
+          body: formData
+        });
+        const data = await res.json();
+        if (data.success) {
+          currentSession.session_key = data.data.session_key;
+          currentSession.candidate_name = data.data.candidate_name;
+          currentSession.role = role;
+          currentSession.analysis = data.data.analysis;
+          renderProfileCard(data.data.analysis);
+          showToast(`Demo Profile loaded for ${role}!`);
+        }
+      } catch (err) {
+        showToast("Failed to load demo profile: " + err.message);
+      }
+    }
+
+    // Render Extracted Profile
+    function renderProfileCard(analysis) {
+      if (!analysis) return;
+      document.getElementById("emptyProfileState").style.display = "none";
+      document.getElementById("loadedProfileState").style.display = "block";
+
+      document.getElementById("profName").textContent = analysis.candidate_name || currentSession.candidate_name;
+      document.getElementById("profRole").textContent = `${currentSession.role} Candidate`;
+      document.getElementById("profExp").textContent = `${analysis.experience_years || 2} Years Exp`;
+
+      const skillsBox = document.getElementById("profSkills");
+      skillsBox.innerHTML = "";
+      (analysis.key_skills || ["Python", "Algorithms", "System Design"]).forEach(s => {
+        const tag = document.createElement("span");
+        tag.className = "skill-tag";
+        tag.textContent = s;
+        skillsBox.appendChild(tag);
+      });
+
+      const probeBox = document.getElementById("profProbe");
+      probeBox.innerHTML = "";
+      (analysis.weak_areas_to_probe || ["System Architecture", "Performance Tuning"]).forEach(s => {
+        const tag = document.createElement("span");
+        tag.className = "skill-tag";
+        tag.style.borderColor = "rgba(239, 68, 68, 0.4)";
+        tag.style.color = "#f87171";
+        tag.textContent = s;
+        probeBox.appendChild(tag);
+      });
+
+      document.getElementById("profSummary").textContent = analysis.resume_summary || "Technical background with solid fundamentals.";
+    }
+
+    // 2. Launch Studio View
+    async function startInterviewStudio() {
+      if (!currentSession.session_key) {
+        showToast("Please upload a resume or load a profile first.");
+        return;
+      }
+
+      const runId = ++interviewRunId;
+      if (interviewTimer) clearInterval(interviewTimer);
+      interviewTimer = null;
+      timerDeadlineMs = null;
+      const launchButton = document.getElementById("launchInterviewBtn");
+      if (launchButton) {
+        launchButton.disabled = true;
+        launchButton.textContent = "Preparing secure voice session…";
+      }
+
+      // Every launch is a new interview. Never inherit a previous countdown,
+      // transcript, editor snapshot, or completed-call state.
+      isFinishingInterview = false;
+      codingModeActive = false;
+      codingTransitionRequested = false;
+      clearTimeout(codingTransitionFallbackTimer);
+      clearTimeout(codeContextTimer);
+      clearTimeout(codeCheckpointTimer);
+      codingCheckpointAsked = false;
+      codingStartedAt = 0;
+      totalSeconds = currentSession.duration_mins * 60;
+      secondsLeft = totalSeconds;
+      transcriptMessages = [];
+      lastCodeContext = "";
+      currentSession.code_result = null;
+      currentSession.evaluation = null;
+      evaluationPromise = null;
+      evaluationFingerprint = "";
+      evaluationCodeFingerprint = "";
+      document.getElementById("studioTimer").textContent = `${String(currentSession.duration_mins).padStart(2, "0")}:00`;
+      resetCodingWorkspaceUI();
+
+      showToast("Preparing questions, microphone, and voice connection…");
+
+      try {
+        // These operations are independent, so run them concurrently to keep
+        // launch latency bounded by the slowest operation rather than their sum.
+        const startRequest = fetch("/interview/start", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            role: currentSession.role,
+            duration_mins: currentSession.duration_mins,
+            resume_session_key: currentSession.session_key
+          })
+        });
+        const sdkRequest = ensureVapiLoaded();
+        const microphoneRequest = warmMicrophonePermission();
+        const [startRes, vapiClass] = await Promise.all([startRequest, sdkRequest, microphoneRequest]);
+        if (runId !== interviewRunId) return;
+
+        const startData = await startRes.json();
+        if (runId !== interviewRunId) return;
+        if (!startData.success) {
+          showToast("Start failed: " + startData.error);
+          if (launchButton) {
+            launchButton.disabled = false;
+            launchButton.textContent = "🎙️ Launch Live Interview Studio →";
+          }
+          return;
+        }
+
+        currentSession.call_id = startData.data.call_id;
+        currentSession.system_prompt = startData.data.system_prompt;
+        const codingQuestion = startData.data.coding_question;
+        if (!codingQuestion || !String(codingQuestion.problem || "").trim()) {
+          throw new Error("The backend did not return a valid coding question. The interview was not started.");
+        }
+        currentSession.coding_question = codingQuestion;
+        renderCodingChallenge(codingQuestion);
+
+        // Switch Views
+        switchView(2);
+
+        const name = currentSession.candidate_name || "Candidate";
+        const parts = name.trim().split(" ");
+        const initials = (parts[0][0] + (parts[1] ? parts[1][0] : "")).toUpperCase();
+        
+        const titleEl = document.getElementById("studioCandidateTitle");
+        if (titleEl) titleEl.textContent = `${name} · ${currentSession.role}`;
+        const nameEl = document.getElementById("candidateTileName");
+        if (nameEl) nameEl.textContent = `${name} (You)`;
+        const initEl = document.getElementById("candidateInitials");
+        if (initEl) initEl.textContent = initials;
+        const letterEl = document.getElementById("candidateAvatarLetter");
+        if (letterEl) letterEl.textContent = initials[0] || "C";
+
+        const vapiPub = startData.data.vapi_public_key;
+        const vapiAsst = startData.data.vapi_assistant_id;
+
+        if (vapiPub && vapiAsst && vapiClass) {
+          isVapiMode = true;
+          document.getElementById("backendStatus").textContent = "Connecting secure WebRTC audio…";
+          await startVapiSession(vapiPub, vapiAsst, startData.data.system_prompt, currentSession.duration_mins * 60, runId);
+        } else {
+          isVapiMode = false;
+          if (startData.data.vapi_setup_error) {
+            console.warn(startData.data.vapi_setup_error);
+          }
+          initDialogueQuestions();
+        }
+        if (runId !== interviewRunId) return;
+        startTimer(runId);
+
+      } catch (e) {
+        if (runId !== interviewRunId) return;
+        showToast("Error starting studio: " + e.message);
+        if (launchButton) {
+          launchButton.disabled = false;
+          launchButton.textContent = "🎙️ Launch Live Interview Studio →";
+        }
+      }
+    }
+
+    // Dynamic ESM loader helper for Vapi
+    async function ensureVapiLoaded() {
+      if (window.Vapi) return window.Vapi;
+      if (vapiLoadPromise) return vapiLoadPromise;
+      vapiLoadPromise = (async () => {
+        try {
+          const mod = await import("https://esm.sh/@vapi-ai/web@3.0.0");
+          window.Vapi = mod.default?.default || mod.default || mod;
+          return window.Vapi;
+        } catch (e1) {
+          console.warn("esm.sh load failed, trying jsdelivr +esm:", e1);
+          try {
+            const mod2 = await import("https://cdn.jsdelivr.net/npm/@vapi-ai/web@3.0.0/+esm");
+            window.Vapi = mod2.default?.default || mod2.default || mod2;
+            return window.Vapi;
+          } catch (e2) {
+            console.error("Failed to load Vapi SDK dynamically:", e2);
+            return null;
+          }
+        }
+      })();
+      return vapiLoadPromise;
+    }
+
+    async function warmMicrophonePermission() {
+      if (!navigator.mediaDevices?.getUserMedia) return;
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+        });
+        // Permission and the device are now warm; Vapi opens the call-owned
+        // stream immediately afterwards. Avoid competing microphone streams.
+        stream.getTracks().forEach(track => track.stop());
+      } catch (err) {
+        console.warn("Microphone warm-up was not available:", err);
+      }
+    }
+
+    // Start Vapi Live WebRTC Audio Call
+    async function startVapiSession(publicKey, assistantId, systemPrompt, maxDuration, runId) {
+      try {
+        const VapiClass = window.Vapi?.default || window.Vapi;
+        const client = new VapiClass(publicKey);
+        vapiClient = client;
+
+        setVoiceState("listening", "Connecting to Vapi Voice Stream...");
+        showToast("Connecting live Vapi WebRTC audio call... Click 'Allow' when browser asks for microphone.");
+
+        client.on('call-start', (call) => {
+          if (runId !== interviewRunId) return;
+          // Prefer Vapi's durable call id so locally saved transcripts and webhook
+          // transcripts use the same identifier.
+          if (call && call.id) currentSession.call_id = call.id;
+          setVoiceState("listening", "Live WebRTC Audio Active · Say Hello!");
+          document.getElementById("backendStatus").textContent = "FastAPI + Vapi WebRTC: Active";
+          updateMicDockUI(false);
+          showToast("✓ Vapi Voice Connected! Speak directly into your microphone.");
+        });
+
+        client.on('call-start-failed', (err) => {
+          if (runId !== interviewRunId) return;
+          console.error("Vapi call start failed:", err);
+          console.error("Vapi call start failure detail:", JSON.stringify({
+            message: err?.error?.message || err?.message,
+            code: err?.error?.code || err?.code,
+            status: err?.error?.status || err?.error?.statusCode || err?.status,
+            response: err?.error?.response?.data || err?.response?.data,
+            context: err?.context
+          }, null, 2));
+          showToast("⚠️ Vapi connection failed. Switching to browser dialogue questions.");
+          isVapiMode = false;
+          initDialogueQuestions();
+        });
+
+        client.on('speech-start', () => {
+          if (runId !== interviewRunId) return;
+          isSpeaking = true;
+          if (codingTransitionRequested && !codingModeActive) enterCodingRound();
+          setVoiceState("speaking", "AI Interviewer Speaking...");
+        });
+
+        client.on('speech-end', () => {
+          if (runId !== interviewRunId) return;
+          isSpeaking = false;
+          setVoiceState("listening", "Listening to Candidate (Speak now)...");
+        });
+
+        client.on('volume-level', (vol) => {
+          if (runId !== interviewRunId) return;
+          vapiVolume = vol;
+        });
+
+        client.on('local-volume-level', (vol) => {
+          if (runId !== interviewRunId) return;
+          micLevel = vol;
+          if (vol > 0.05 && !isSpeaking) {
+            setVoiceState("listening", "Candidate Speaking (Mic Active)...");
+          }
+        });
+
+        client.on('message', (message) => {
+          if (runId !== interviewRunId) return;
+          if (message.type === 'transcript') {
+            const role = (message.role === 'assistant' || message.role === 'bot') ? 'interviewer' : 'candidate';
+            // Partial assistant transcripts arrive while speech is playing,
+            // which keeps the visual coding transition aligned with its audio.
+            if (role === 'interviewer') maybeEnterCodingRound(message.transcript);
+            if (message.transcriptType === 'final') addChatMessage(role, message.transcript);
+          }
+        });
+
+        client.on('call-end', () => {
+          if (runId !== interviewRunId) return;
+          // A WebRTC/Vapi disconnect is not the same as a completed interview.
+          // Only accept Vapi's end event when our own deadline is effectively
+          // reached or finishInterview() has already initiated the stop.
+          if (!isFinishingInterview && (!timerDeadlineMs || secondsLeft > 3)) {
+            console.warn(`Vapi call ended unexpectedly with ${secondsLeft}s remaining; interview remains active.`);
+            if (vapiClient === client) vapiClient = null;
+            isVapiMode = false;
+            isSpeaking = false;
+            setVoiceState("listening", "Voice connection ended early · interview timer still active");
+            showToast("Voice connection ended early. The interview was not marked complete.");
+            if (codingTransitionRequested && !codingModeActive) {
+              const fallbackTransition = "Now let's move to a coding challenge.";
+              addChatMessage("interviewer", fallbackTransition);
+              speakText(fallbackTransition);
+              enterCodingRound();
+            }
+            return;
+          }
+          finishInterview("vapi-duration", runId);
+        });
+
+        client.on('error', (err) => {
+          if (runId !== interviewRunId) return;
+          console.warn("Vapi SDK notice/error:", err);
+          console.warn("Vapi SDK error detail:", JSON.stringify({
+            message: err?.error?.message || err?.message,
+            code: err?.error?.code || err?.code,
+            status: err?.error?.status || err?.error?.statusCode || err?.status,
+            response: err?.error?.response?.data || err?.response?.data,
+            context: err?.context
+          }, null, 2));
+          const errStr = typeof err === 'object' ? JSON.stringify(err) : String(err);
+          if (errStr.includes("NotFoundError") || errStr.includes("DevicesNotFoundError")) {
+            showToast("⚠️ Microphone hardware not found! In VirtualBox: Check VM Settings -> Audio -> 'Enable Audio Input'.");
+          } else if (errStr.includes("NotAllowedError") || errStr.includes("PermissionDeniedError")) {
+            showToast("⚠️ Microphone access blocked! Click the mic icon in Firefox address bar and select 'Allow'.");
+          }
+        });
+
+        // Trigger Call with Dynamic Session Prompt overrides
+        const callOverrides = {
+          // This override is essential: variableValues only work when the
+          // assistant's saved prompt already contains matching {{variables}}.
+          // Supplying the session prompt makes every interview use its generated
+          // role/resume/question context. Vapi requires a complete model object
+          // for a model override, rather than a partial merge with the assistant.
+          model: {
+            provider: "groq",
+            model: "llama-3.1-8b-instant",
+            systemPrompt: systemPrompt
+          },
+          maxDurationSeconds: maxDuration,
+          variableValues: {
+            candidate_name: currentSession.candidate_name || "Candidate",
+            role: currentSession.role || "Software Engineer"
+          }
+        };
+
+        // Never retry without overrides: a plain start can silently use the
+        // dashboard assistant's unrelated prompt and default call duration.
+        await client.start(assistantId, callOverrides);
+
+      } catch (err) {
+        if (runId !== interviewRunId) return;
+        console.error("Vapi start error:", err);
+        showToast("Vapi Web SDK error: using browser speech.");
+        isVapiMode = false;
+        initDialogueQuestions();
+      }
+    }
+
+    // Switch View Steps
+    function switchView(step) {
+      document.querySelectorAll(".view-section").forEach(v => v.classList.remove("active-view"));
+      document.querySelectorAll(".step-item").forEach(s => s.classList.remove("active"));
+
+      document.getElementById(`view${step}`).classList.add("active-view");
+      document.getElementById(`stepIndicator${step}`).classList.add("active");
+    }
+
+    // Setup Interview Questions from System Prompt
+    function initDialogueQuestions() {
+      const chat = document.getElementById("chatStream");
+      chat.innerHTML = "";
+      transcriptMessages = [];
+
+      document.getElementById("studioCandidateTitle").textContent = `${currentSession.candidate_name} · ${currentSession.role}`;
+
+      const greeting = `Hello ${currentSession.candidate_name}! Welcome to your technical interview for the ${currentSession.role} position at MIT. We will spend the first part on core concepts and then move to a live coding problem. Let us begin with your background and technical experience.`;
+      
+      addChatMessage("interviewer", greeting);
+      speakText(greeting);
+
+      // Pre-seed technical questions based on role
+      if (currentSession.role.includes("Data")) {
+        currentQuestions = [
+          "Can you explain the difference between OLTP and OLAP architectures, and when you would recommend each?",
+          "How do you identify and mitigate partition skew in Apache Spark or distributed pipelines?",
+          "How would you guarantee exactly-once processing semantics in a high-volume streaming pipeline?"
+        ];
+      } else if (currentSession.role.includes("Machine")) {
+        currentQuestions = [
+          "Can you describe how the self-attention mechanism works mathematically in transformer models?",
+          "What techniques do you use to mitigate vanishing or exploding gradients in deep neural networks?",
+          "How do you evaluate and minimize inference latency when serving large language models in production?"
+        ];
+      } else {
+        currentQuestions = [
+          "What is the fundamental difference between a process and a thread, and how does the OS handle context switching?",
+          "Explain how garbage collection works in modern runtimes, and what scenarios can still trigger memory leaks?",
+          "How would you design a distributed rate limiter that handles 100,000 requests per second across regions?"
+        ];
+      }
+      currentQuestionIndex = 0;
+    }
+
+    function triggerNextQuestion() {
+      if (currentQuestionIndex < currentQuestions.length) {
+        const q = currentQuestions[currentQuestionIndex];
+        currentQuestionIndex++;
+        addChatMessage("interviewer", q);
+        speakText(q);
+      } else {
+        const promptCoding = `Great conceptual discussion! Let us now transition to Part 2 of your interview. Please review the coding problem on the right side of your screen. Take a moment to read the requirements, write your solution, and click 'Run Test Cases'.`;
+        addChatMessage("interviewer", promptCoding);
+        speakText(promptCoding);
+        enterCodingRound();
+      }
+    }
+
+    // Vapi emits final transcripts, not a dedicated coding-round event. The
+    // prompt requires this exact transition sentence, so the UI can switch
+    // without interrupting the live voice call.
+    function maybeEnterCodingRound(text) {
+      if (codingModeActive || !codingTransitionRequested || !text) return;
+      if (/now\s+let['’]?s\s+move\s+to\s+(a\s+)?coding\s+challenge/i.test(text)) {
+        clearTimeout(codingTransitionFallbackTimer);
+        enterCodingRound();
+      }
+    }
+
+    function enterCodingRound() {
+      if (codingModeActive) return;
+      if (!currentSession.coding_question?.problem) {
+        showToast("Coding question is unavailable. Please restart the interview.");
+        console.error("Coding transition blocked: no rendered coding question.");
+        return;
+      }
+      codingModeActive = true;
+      codingTransitionRequested = false;
+      clearTimeout(codingTransitionFallbackTimer);
+      codingStartedAt = Date.now();
+      codingCheckpointAsked = false;
+      const container = document.getElementById("studioContainer");
+      const editorPane = document.getElementById("editorPane");
+      const phaseEl = document.getElementById("studioPhase");
+      const splitText = document.getElementById("splitToggleText");
+      const codeBtn = document.getElementById("dockCodeBtn");
+      container.classList.remove("split-view");
+      container.classList.add("coding-mode");
+      editorPane.style.display = "grid";
+      isSplitMode = true;
+      if (phaseEl) {
+        phaseEl.innerHTML = '<span class="pulse-ring-dot"></span> Phase 2: Coding Challenge';
+        phaseEl.style.color = "#34d399";
+      }
+      if (splitText) splitText.textContent = "Coding Round Active";
+      if (codeBtn) codeBtn.classList.add("active");
+      document.getElementById("codeEditor")?.focus();
+      showToast("Coding round started — problem on the left, editor on the right.");
+      beginBackgroundEvaluation();
+    }
+
+    function codingRoundStartSeconds() {
+      return 3 * 60;
+    }
+
+    function transitionToCodingOnSchedule() {
+      if (codingModeActive || codingTransitionRequested) return;
+      // With Vapi, wait for the spoken transition phrase (detected from a
+      // live partial transcript) before opening the coding layout.
+      if (isVapiMode && vapiClient) {
+        codingTransitionRequested = true;
+        showToast("Preparing the coding challenge...");
+        vapiClient.send({
+          type: "add-message",
+          triggerResponseEnabled: true,
+          message: {
+            role: "system",
+            content: `Technical-question time is complete. Immediately say exactly: Now let's move to a coding challenge. Then read this exact problem clearly: ${currentSession.coding_question.problem} Read the visible examples, say: Take your time to code your solution. Then remain silent while the candidate codes.`
+          }
+        });
+        // Do not open before the interviewer speaks. If voice connectivity is
+        // actually lost, the call-end handler switches to the honest fallback.
+        codingTransitionFallbackTimer = setTimeout(() => {
+          if (!codingModeActive && codingTransitionRequested) {
+            console.warn("Coding transition audio has not started yet; keeping the conversational view open.");
+            showToast("The interviewer is finishing the current turn; coding will open with the announcement.");
+          }
+        }, 12000);
+      } else {
+        const promptCoding = "Now let's move to a coding challenge.";
+        addChatMessage("interviewer", promptCoding);
+        speakText(promptCoding);
+        enterCodingRound();
+      }
+    }
+
+    // Add message to transcript & update live captions
+    function addChatMessage(role, text) {
+      if (role === "interviewer") {
+        const cap = document.getElementById("aiCaptionText");
+        if (cap) cap.textContent = `"${text}"`;
+        const orb = document.getElementById("aiVoiceOrb");
+        if (orb) orb.classList.add("speaking");
+      } else {
+        const cap = document.getElementById("candidateCaptionText");
+        if (cap) cap.textContent = `"${text}"`;
+        const circle = document.getElementById("candidateAvatarCircle");
+        if (circle) circle.classList.add("speaking");
+      }
+
+      const chat = document.getElementById("chatStream");
+      if (chat) {
+        const bubble = document.createElement("div");
+        bubble.className = `chat-bubble chat-${role}`;
+
+        const speaker = document.createElement("div");
+        speaker.className = "chat-speaker";
+        speaker.textContent = role === "interviewer" ? "AI Interviewer (MIT)" : currentSession.candidate_name;
+
+        const body = document.createElement("div");
+        body.textContent = text;
+
+        bubble.appendChild(speaker);
+        bubble.appendChild(body);
+        chat.appendChild(bubble);
+        chat.scrollTop = chat.scrollHeight;
+      }
+
+      // Track transcript
+      transcriptMessages.push({
+        role: role,
+        content: text,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Candidate message input
+    function sendCandidateText() {
+      const input = document.getElementById("candidateTextInput");
+      const text = input.value.trim();
+      if (!text) return;
+      
+      addChatMessage("candidate", text);
+      input.value = "";
+
+      // Trigger interviewer feedback after a brief pause
+      setVoiceState("speaking", "AI Thinking & Analyzing...");
+      setTimeout(() => {
+        triggerNextQuestion();
+      }, 1200);
+    }
+
+    function handleTextKey(e) {
+      if (e.key === "Enter") {
+        sendCandidateText();
+      }
+    }
+
+    // 3. Coding Challenge Setup
+    function renderCodingChallenge(cq) {
+      if (!cq) return;
+      currentSession.coding_question = cq;
+      document.getElementById("codingTitle").textContent = "Coding Challenge";
+      const difficulty = Number(cq.difficulty);
+      const difficultyLabel = Number.isFinite(difficulty)
+        ? (difficulty <= 3 ? "Easy" : difficulty <= 6 ? "Medium" : "Hard")
+        : "Medium";
+      document.getElementById("codingDifficulty").textContent = `Difficulty: ${difficultyLabel}`;
+      document.getElementById("codingProblem").textContent = String(cq.problem || "").trim();
+      
+      if (cq.examples && cq.examples.length > 0) {
+        document.getElementById("codingExample").textContent = cq.examples.map((ex, index) =>
+          `Example ${index + 1}\nInput: ${ex.input}\nOutput: ${ex.output}`
+        ).join("\n\n");
+      } else {
+        document.getElementById("codingExample").textContent = "No visible examples were provided.";
+      }
+
+      resetCodeTemplate();
+    }
+
+    function resetCodeTemplate() {
+      const lang = document.getElementById("codeLanguage").value;
+      const editor = document.getElementById("codeEditor");
+
+      const parameters = Array.isArray(currentSession.coding_question?.parameters)
+        ? currentSession.coding_question.parameters.filter(p => /^[A-Za-z_][A-Za-z0-9_]*$/.test(p))
+        : ["nums"];
+      const signature = (parameters.length ? parameters : ["nums"]).join(", ");
+
+      if (lang === "python") {
+        editor.value = `# Write your solution below
+def solution(${signature}):
+    pass
+`;
+      } else {
+        editor.value = `// Write your solution below
+function solution(${signature}) {
+    // your implementation
+}
+`;
+      }
+    }
+
+    function updateLanguageTemplate() {
+      resetCodeTemplate();
+    }
+
+    function scheduleCodeContext() {
+      // A changed editor invalidates the previous judge result.
+      currentSession.code_result = null;
+      clearTimeout(codeContextTimer);
+      codeContextTimer = setTimeout(() => {
+        if (!isVapiMode || !vapiClient) return;
+        const code = document.getElementById("codeEditor").value;
+        // Avoid repeatedly growing the call context with identical editor data.
+        if (code === lastCodeContext) return;
+        lastCodeContext = code;
+        // Background-only, debounced context: it never interrupts a candidate.
+        vapiClient.send({ type: "add-message", triggerResponseEnabled: false, message: { role: "system", content: `CODING MODE UPDATE: Candidate is currently writing ${document.getElementById("codeLanguage").value}. Do not interrupt. Latest code snapshot:\n${code.slice(0, 2500)}` } });
+        scheduleApproachCheckpoint(code);
+      }, 12000);
+    }
+
+    function scheduleApproachCheckpoint(code) {
+      clearTimeout(codeCheckpointTimer);
+      if (codingCheckpointAsked || !codingModeActive || code.trim().length < 55) return;
+      // Give the candidate time to establish an approach, then ask once only
+      // after they have stopped typing. This prevents per-keystroke model calls.
+      const codingAge = Date.now() - codingStartedAt;
+      // A five-minute interview leaves only two minutes for coding. Trigger a
+      // single checkpoint promptly, but only after a meaningful quiet period.
+      const initialWait = Math.max(0, 25000 - codingAge);
+      codeCheckpointTimer = setTimeout(() => {
+        if (codingCheckpointAsked || !isVapiMode || !vapiClient || !codingModeActive) return;
+        codingCheckpointAsked = true;
+        vapiClient.send({
+          type: "add-message",
+          triggerResponseEnabled: true,
+          message: {
+            role: "system",
+            content: "CODING CHECKPOINT: Review the candidate's latest code snapshot. Ask exactly ONE concise, non-leading question about the apparent approach (for example, an invariant, edge case, or time complexity). Do not state a solution, do not give feedback, and after the candidate answers return to silence."
+          }
+        });
+        console.info("Vapi coding checkpoint requested from latest editor snapshot.");
+      }, initialWait + 10000);
+    }
+
+    // Execute Code against Test Cases
+    async function runCode() {
+      const code = document.getElementById("codeEditor").value;
+      const lang = document.getElementById("codeLanguage").value;
+      const out = document.getElementById("runnerOutput");
+      out.innerHTML = `<span style="color:#60a5fa;">Executing code against test cases...</span>`;
+
+      try {
+        const res = await fetch("/interview/run-code", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            code: code,
+            language: lang,
+            resume_session_key: currentSession.session_key
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          currentSession.code_result = data.data;
+          beginBackgroundEvaluation();
+          const results = data.data.results;
+          let html = "";
+          let allPassed = data.data.all_passed;
+
+          const passedCount = results.filter(item => item.passed).length;
+          html += `<div style="margin-bottom:8px; font-weight:700;" class="${allPassed ? 'test-pass' : 'test-fail'}">
+            ${allPassed ? `✓ ALL TEST CASES PASSED (${passedCount}/${results.length})` : `✗ SOME TEST CASES FAILED (${passedCount}/${results.length})`}
+          </div>`;
+
+          results.forEach(r => {
+            html += `<div style="margin-bottom:6px; border-bottom:1px solid #1f2937; padding-bottom:4px;">
+              <span class="${r.passed ? 'test-pass' : 'test-fail'}">${r.passed ? '✓ PASS' : '✗ FAIL'}</span> 
+              <span>Hidden Test Case ${r.test_case}</span>
+              <span style="color:#94a3b8;"> · Status:</span> <code>${escapeHtml(r.status || 'Unknown')}</code>
+              ${r.passed ? '' : `<span style="color:#94a3b8;"> · Output:</span> <code>${escapeHtml(r.actual ?? '(no output)')}</code>${r.error ? ` · <span style="color:#f87171;">${escapeHtml(r.error)}</span>` : ''}`}
+            </div>`;
+          });
+
+          out.innerHTML = html;
+        } else {
+          out.innerHTML = `<span style="color:#f87171;">Error executing code: ${data.error}</span>`;
+        }
+      } catch (err) {
+        out.innerHTML = `<span style="color:#f87171;">Failed to connect to execution runner: ${err.message}</span>`;
+      }
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>'"]/g, character => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+      })[character]);
+    }
+
+    async function submitSolution() {
+      if (!currentSession.code_result) {
+        showToast("Run the hidden test cases before submitting.");
+        return;
+      }
+      addChatMessage("candidate", "I have submitted my coding challenge solution.");
+      showToast("Solution submitted. The interviewer is reviewing your approach.");
+      if (isVapiMode && vapiClient) {
+        const result = currentSession.code_result;
+        const passed = (result.results || []).filter(item => item.passed).length;
+        vapiClient.send({
+          type: "add-message",
+          triggerResponseEnabled: true,
+          message: {
+            role: "system",
+            content: `FINAL CODE SUBMISSION: ${passed}/${(result.results || []).length} hidden tests passed. Review the latest code snapshot. Ask exactly one concise question about complexity, correctness, or an edge case. Do not reveal hidden inputs, do not praise, and do not provide the solution.`
+          }
+        });
+      }
+      beginBackgroundEvaluation();
+    }
+
+    function evaluationSnapshot() {
+      const transcript = transcriptMessages.map(message => ({ role: message.role, content: message.content }));
+      const code = document.getElementById("codeEditor")?.value || "";
+      const codeResult = currentSession.code_result || {};
+      return { transcript, code, codeResult };
+    }
+
+    function beginBackgroundEvaluation() {
+      const snapshot = evaluationSnapshot();
+      if (!snapshot.transcript.length) return null;
+      const fingerprint = JSON.stringify(snapshot);
+      if (evaluationPromise && evaluationFingerprint === fingerprint) return evaluationPromise;
+      evaluationFingerprint = fingerprint;
+      evaluationCodeFingerprint = JSON.stringify({ code: snapshot.code, codeResult: snapshot.codeResult });
+      evaluationPromise = fetch("/interview/evaluate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          role: currentSession.role,
+          transcript: snapshot.transcript,
+          code: snapshot.code,
+          code_result: snapshot.codeResult
+        })
+      }).then(response => response.json()).then(data => {
+        if (!data.success) throw new Error(data.error || "Evaluation failed");
+        return data.data;
+      }).catch(error => {
+        console.warn("Background evaluation failed:", error);
+        return null;
+      });
+      return evaluationPromise;
+    }
+
+    function finalEvaluationPromise() {
+      const snapshot = evaluationSnapshot();
+      const currentCodeFingerprint = JSON.stringify({ code: snapshot.code, codeResult: snapshot.codeResult });
+      // Technical evaluation starts as coding begins. A later Run/Submit starts
+      // a complete report. Reuse that in-flight/completed report at call end so
+      // the candidate does not wait for another model request.
+      if (evaluationPromise && evaluationCodeFingerprint === currentCodeFingerprint) {
+        return evaluationPromise;
+      }
+      return beginBackgroundEvaluation();
+    }
+
+    // 4. Enhanced Voice Synthesis & Real-Time Microphone Recognition
+    let silenceTimer = null;
+    let shouldListen = false;
+    let micAudioContext = null;
+    let micAnalyser = null;
+    let micLevel = 0;
+
+    async function initUserMediaMic() {
+      try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          console.warn("navigator.mediaDevices.getUserMedia not available in this environment.");
+          return;
+        }
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        micAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const source = micAudioContext.createMediaStreamSource(stream);
+        micAnalyser = micAudioContext.createAnalyser();
+        micAnalyser.fftSize = 64;
+        source.connect(micAnalyser);
+        
+        function pollVolume() {
+          if (micAnalyser && (isMicRecording || isVapiMode)) {
+            const data = new Uint8Array(micAnalyser.frequencyBinCount);
+            micAnalyser.getByteFrequencyData(data);
+            let sum = 0;
+            for (let i = 0; i < data.length; i++) sum += data[i];
+            micLevel = sum / (data.length * 255);
+          } else {
+            micLevel = 0;
+          }
+          requestAnimationFrame(pollVolume);
+        }
+        pollVolume();
+      } catch (err) {
+        console.warn("Could not initialize mic audio context:", err);
+        if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+          showToast("⚠️ Microphone hardware not found! If in VirtualBox: VM Settings -> Audio -> Check 'Enable Audio Input'.");
+        } else if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+          showToast("⚠️ Microphone permission denied! Please click the mic icon in Firefox address bar and select 'Allow'.");
+        }
+      }
+    }
+
+    function setupSpeech() {
+      // Vapi owns the only persistent microphone stream. Opening a second
+      // analyser stream here caused contention and degraded VM audio quality.
+      const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SpeechRec) {
+        speechRecognition = new SpeechRec();
+        speechRecognition.continuous = true;
+        speechRecognition.interimResults = true;
+        speechRecognition.lang = "en-US";
+
+        speechRecognition.onstart = () => {
+          isMicRecording = true;
+          updateMicDockUI(false);
+          setVoiceState("listening", "Listening to Candidate (Speak now)...");
+        };
+
+        speechRecognition.onresult = (event) => {
+          let interim = '';
+          let final = '';
+
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+              final += event.results[i][0].transcript;
+            } else {
+              interim += event.results[i][0].transcript;
+            }
+          }
+
+          if (interim) {
+            const cap = document.getElementById("candidateCaptionText");
+            if (cap) cap.textContent = `"${interim}..."`;
+            setVoiceState("listening", "Transcribing candidate speech...");
+          }
+
+          if (final) {
+            addChatMessage("candidate", final);
+            if (silenceTimer) clearTimeout(silenceTimer);
+            silenceTimer = setTimeout(() => {
+              // Trigger interviewer feedback after a brief pause
+              setVoiceState("speaking", "AI Thinking & Analyzing...");
+              setTimeout(() => {
+                triggerNextQuestion();
+              }, 1200);
+            }, 1000);
+          }
+        };
+
+        speechRecognition.onerror = (e) => {
+          console.warn("Speech recognition error:", e.error);
+          if (e.error === 'not-allowed') {
+            showToast("⚠️ Microphone access blocked. Please click the lock icon in your browser address bar to allow mic.");
+            setVoiceState("idle", "Mic Blocked (Allow in browser)");
+          }
+          isMicRecording = false;
+          updateMicDockUI(true);
+        };
+
+        speechRecognition.onend = () => {
+          isMicRecording = false;
+          updateMicDockUI(true);
+          if (shouldListen && !isSpeaking && !isVapiMode) {
+            try {
+              speechRecognition.start();
+            } catch (err) {}
+          } else {
+            setVoiceState("idle", "Microphone Idle");
+          }
+        };
+      } else {
+        console.info("Web Speech API (SpeechRecognition) not supported natively in this browser (common in Firefox). Vapi WebRTC handles full voice streaming!");
+      }
+    }
+
+    function startListening() {
+      shouldListen = true;
+      if (isVapiMode && vapiClient) {
+        try {
+          vapiClient.setMuted(false);
+          setVoiceState("listening", "Listening to Candidate...");
+          updateMicDockUI(false);
+        } catch (e) {
+          console.warn("Could not unmute Vapi:", e);
+        }
+        return;
+      }
+      if (speechRecognition && !isMicRecording) {
+        try {
+          speechRecognition.start();
+        } catch (err) {
+          console.warn("Could not start speech recognition:", err);
+        }
+      } else if (!speechRecognition && !isVapiMode) {
+        const input = document.getElementById("candidateTextInput");
+        if (input) input.focus();
+        showToast("ℹ️ Speech Recognition API not available in Firefox. Type your response below and press Enter.");
+      }
+    }
+
+    function stopListening() {
+      shouldListen = false;
+      if (isVapiMode && vapiClient) {
+        try {
+          vapiClient.setMuted(true);
+          setVoiceState("idle", "Microphone Muted");
+          updateMicDockUI(true);
+        } catch (e) {
+          console.warn("Could not mute Vapi:", e);
+        }
+        return;
+      }
+      if (speechRecognition && isMicRecording) {
+        try {
+          speechRecognition.stop();
+        } catch (err) {}
+      }
+    }
+
+    function updateMicDockUI(isMuted) {
+      const btn = document.getElementById("dockMicBtn");
+      const label = document.getElementById("micBtnLabel");
+      const icon = document.getElementById("micSvgIcon");
+      if (!btn) return;
+      if (isMuted) {
+        btn.className = "dock-btn muted-mic";
+        if (label) label.textContent = "Mic Muted";
+        if (icon) {
+          icon.innerHTML = `<line x1="1" y1="1" x2="23" y2="23"/><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"/><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>`;
+        }
+      } else {
+        btn.className = "dock-btn active-mic";
+        if (label) label.textContent = "Mic Live";
+        if (icon) {
+          icon.innerHTML = `<path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>`;
+        }
+      }
+    }
+
+    function toggleMic() {
+      if (isVapiMode && vapiClient) {
+        try {
+          const currentlyMuted = vapiClient.isMuted();
+          vapiClient.setMuted(!currentlyMuted);
+          updateMicDockUI(!currentlyMuted);
+          if (!currentlyMuted) {
+            setVoiceState("idle", "Microphone Muted");
+            showToast("Microphone muted");
+          } else {
+            setVoiceState("listening", "Microphone Live (Listening)...");
+            showToast("Microphone unmuted — Listening...");
+          }
+        } catch (e) {
+          console.warn("Error toggling Vapi mic:", e);
+        }
+        return;
+      }
+      if (isMicRecording) {
+        stopListening();
+        updateMicDockUI(true);
+        showToast("Microphone muted");
+      } else {
+        startListening();
+        updateMicDockUI(false);
+        if (speechRecognition) {
+          showToast("Microphone active — Listening...");
+        }
+      }
+    }
+
+    // Toggle Split View for Coding Challenge
+    let isSplitMode = false;
+    function resetCodingWorkspaceUI() {
+      const container = document.getElementById("studioContainer");
+      const editorPane = document.getElementById("editorPane");
+      const phaseEl = document.getElementById("studioPhase");
+      const splitText = document.getElementById("splitToggleText");
+      const codeBtn = document.getElementById("dockCodeBtn");
+      const runnerOutput = document.getElementById("runnerOutput");
+
+      isSplitMode = false;
+      container?.classList.remove("coding-mode", "split-view");
+      if (editorPane) editorPane.style.display = "none";
+      if (phaseEl) {
+        phaseEl.innerHTML = '<span class="pulse-ring-dot"></span> Phase 1: 1-on-1 Conversational Interview';
+        phaseEl.style.color = "var(--accent)";
+      }
+      if (splitText) splitText.textContent = "Open Code Editor";
+      codeBtn?.classList.remove("active");
+      if (runnerOutput) {
+        runnerOutput.innerHTML = '<span style="color: #64748b;">Click "▶ Run Test Cases" to execute your solution against hidden test cases.</span>';
+      }
+    }
+
+    function toggleCodingSplit() {
+      const container = document.getElementById("studioContainer");
+      const editorPane = document.getElementById("editorPane");
+      const splitText = document.getElementById("splitToggleText");
+      const codeBtn = document.getElementById("dockCodeBtn");
+      if (codingModeActive) {
+        showToast("The coding workspace stays open until the interview ends.");
+        return;
+      }
+      isSplitMode = !isSplitMode;
+      if (isSplitMode) {
+        container.classList.add("split-view");
+        editorPane.style.display = "flex";
+        if (splitText) splitText.textContent = "Hide Code Editor";
+        if (codeBtn) codeBtn.classList.add("active");
+        showToast("Code Workspace opened in Split View");
+      } else {
+        container.classList.remove("split-view");
+        editorPane.style.display = "none";
+        if (splitText) splitText.textContent = "Open Code Editor";
+        if (codeBtn) codeBtn.classList.remove("active");
+        showToast("1-on-1 Call expanded to full view");
+      }
+    }
+
+    // Toggle Optional Webcam Video
+    let localVideoStream = null;
+    async function toggleCamera() {
+      const videoEl = document.getElementById("candidateVideo");
+      const avatarBox = document.getElementById("candidateAvatarBox");
+      const camBtn = document.getElementById("dockCamBtn");
+      const camLabel = document.getElementById("camBtnLabel");
+      
+      if (localVideoStream) {
+        localVideoStream.getTracks().forEach(t => t.stop());
+        localVideoStream = null;
+        if (videoEl) videoEl.style.display = "none";
+        if (avatarBox) avatarBox.style.display = "flex";
+        if (camBtn) camBtn.classList.remove("active");
+        if (camLabel) camLabel.textContent = "Camera Off";
+        showToast("Camera turned off");
+      } else {
+        try {
+          localVideoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+          if (videoEl) {
+            videoEl.srcObject = localVideoStream;
+            videoEl.style.display = "block";
+          }
+          if (avatarBox) avatarBox.style.display = "none";
+          if (camBtn) camBtn.classList.add("active");
+          if (camLabel) camLabel.textContent = "Camera On";
+          showToast("Camera active!");
+        } catch (err) {
+          console.warn("Camera access not available or denied:", err);
+          showToast("Camera optional/denied: " + err.message);
+        }
+      }
+    }
+
+    // Toggle Collapsible Text Fallback Drawer
+    function toggleTextDrawer() {
+      const drawer = document.getElementById("textFallbackDrawer");
+      const btn = document.getElementById("dockChatToggleBtn");
+      if (!drawer) return;
+      const isHidden = drawer.style.display === "none";
+      drawer.style.display = isHidden ? "flex" : "none";
+      if (btn) {
+        if (isHidden) btn.classList.add("active");
+        else btn.classList.remove("active");
+      }
+      if (isHidden) {
+        const input = document.getElementById("candidateTextInput");
+        if (input) input.focus();
+      }
+    }
+
+    function speakText(text) {
+      if ('speechSynthesis' in window) {
+        stopListening();
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 1.05;
+        utterance.pitch = 1.0;
+        
+        utterance.onstart = () => {
+          isSpeaking = true;
+          setVoiceState("speaking", "AI Interviewer Speaking...");
+        };
+
+        utterance.onend = () => {
+          isSpeaking = false;
+          if (speechRecognition) {
+            setVoiceState("listening", "Listening to Candidate (Speak now)...");
+          } else {
+            setVoiceState("listening", "Candidate Turn: Speak or type response below");
+          }
+          // Automatically enable microphone after AI finishes speaking!
+          setTimeout(() => {
+            startListening();
+          }, 400);
+        };
+
+        window.speechSynthesis.speak(utterance);
+      }
+    }
+
+    function setVoiceState(state, text) {
+      const badge = document.getElementById("aiVoiceBadge");
+      const badgeText = document.getElementById("voiceBadgeText");
+      if (badge) badge.className = `voice-state-badge voice-state-${state}`;
+      if (badgeText) badgeText.textContent = text;
+      
+      const orb = document.getElementById("aiVoiceOrb");
+      if (orb) {
+        if (state === "speaking") orb.classList.add("speaking");
+        else orb.classList.remove("speaking");
+      }
+    }
+
+    // Wave Canvas Animation + Real-time Audio Pulsing
+    function startWaveAnimation() {
+      if (!ctx) return;
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        canvas.width = canvas.parentElement.clientWidth;
+        canvas.height = 36;
+
+        const width = canvas.width;
+        const height = canvas.height;
+        const centerY = height / 2;
+
+        const amplitude = isSpeaking ? (isVapiMode ? 10 + vapiVolume * 35 : 18) : (isMicRecording ? (8 + micLevel * 45) : 3);
+        const frequency = isSpeaking ? 0.03 : 0.015;
+
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = isSpeaking ? "#818cf8" : (isMicRecording ? "#34d399" : "#4b5563");
+        ctx.beginPath();
+
+        for (let x = 0; x < width; x++) {
+          const y = centerY + Math.sin(x * frequency + waveStep) * amplitude * Math.sin(x / width * Math.PI);
+          if (x === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+
+        // Pulsate AI Orb dynamically
+        const aiOrb = document.getElementById("aiVoiceOrb");
+        if (aiOrb) {
+          if (isSpeaking) {
+            aiOrb.classList.add("speaking");
+            const scale = 1 + Math.min(vapiVolume * 1.5, 0.4);
+            aiOrb.style.transform = `scale(${scale})`;
+          } else {
+            aiOrb.classList.remove("speaking");
+            aiOrb.style.transform = "scale(1)";
+          }
+        }
+
+        // Pulsate Candidate Avatar dynamically with microphone level
+        const candCircle = document.getElementById("candidateAvatarCircle");
+        const candGlow = document.getElementById("candidateRingGlow");
+        if (candCircle) {
+          if (micLevel > 0.05) {
+            candCircle.classList.add("speaking");
+            const scale = 1 + Math.min(micLevel * 1.6, 0.35);
+            candCircle.style.transform = `scale(${scale})`;
+            if (candGlow) candGlow.style.opacity = Math.min(micLevel * 3.5, 1);
+          } else {
+            candCircle.classList.remove("speaking");
+            candCircle.style.transform = "scale(1)";
+            if (candGlow) candGlow.style.opacity = "0.2";
+          }
+        }
+
+        waveStep += isSpeaking ? 0.08 : 0.03;
+        requestAnimationFrame(draw);
+      }
+      draw();
+    }
+
+    // Timer Loop
+    function startTimer(runId) {
+      if (interviewTimer) clearInterval(interviewTimer);
+      // Derive remaining time from an absolute deadline instead of subtracting
+      // one each interval. Browser/VM timers can be delayed or throttled, but
+      // they cannot make a new interview inherit time from an old one.
+      timerDeadlineMs = Date.now() + (totalSeconds * 1000);
+      const tick = () => {
+        if (runId !== interviewRunId) return;
+        secondsLeft = Math.max(0, Math.ceil((timerDeadlineMs - Date.now()) / 1000));
+        if (secondsLeft <= 0) {
+          clearInterval(interviewTimer);
+          interviewTimer = null;
+          finishInterview("timer", runId);
+          return;
+        }
+
+        const elapsedSeconds = totalSeconds - secondsLeft;
+        if (elapsedSeconds >= codingRoundStartSeconds()) transitionToCodingOnSchedule();
+
+        const mins = Math.floor(secondsLeft / 60);
+        const secs = secondsLeft % 60;
+        document.getElementById("studioTimer").textContent = 
+          `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+      };
+      tick();
+      // A short tick makes the phase transition reliable even if Firefox
+      // coalesces a one-second timer in the virtual machine.
+      interviewTimer = setInterval(tick, 250);
+    }
+
+    // 5. Wrap Up & Post Transcript
+    async function finishInterview(reason = "manual", runId = interviewRunId) {
+      // vapiClient.stop() emits call-end.  The guard prevents its handler, the
+      // timer, and the End Interview button from saving the same call repeatedly.
+      if (runId !== interviewRunId || isFinishingInterview) return;
+      isFinishingInterview = true;
+      if (interviewTimer) clearInterval(interviewTimer);
+      timerDeadlineMs = null;
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
+      if (vapiClient) {
+        try { vapiClient.stop(); } catch(e){}
+      }
+      showToast("Saving interview transcript to backend storage...");
+
+      const durationElapsed = totalSeconds - secondsLeft;
+
+      const payload = {
+        call_id: currentSession.call_id || `call-${Date.now()}`,
+        role: currentSession.role,
+        duration: durationElapsed,
+        completion_reason: reason,
+        completed: reason === "timer" || reason === "vapi-duration",
+        timestamp: new Date().toISOString(),
+        transcript: transcriptMessages.map(m => ({
+          role: m.role,
+          content: m.content
+        }))
+      };
+
+      try {
+        await fetch("/interview/transcript", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+      } catch (err) {
+        console.warn("Transcript save error:", err);
+      }
+      if (runId !== interviewRunId) return;
+
+      let evaluation = null;
+      try {
+        evaluation = await finalEvaluationPromise();
+        if (runId !== interviewRunId) return;
+      } catch (err) { console.warn("Evaluation request failed:", err); }
+
+      currentSession.evaluation = evaluation;
+      payload.code_result = currentSession.code_result || null;
+      payload.evaluation = evaluation;
+      try {
+        await fetch("/interview/transcript", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+      } catch (err) { console.warn("Final report persistence failed:", err); }
+
+      // Populate View 3 with evidence-based results when available.
+      if (runId !== interviewRunId) return;
+      renderEvaluationView(durationElapsed, evaluation);
+      switchView(3);
+    }
+
+    function renderEvaluationView(elapsed, evaluation = null) {
+      const mins = Math.floor(elapsed / 60);
+      const secs = elapsed % 60;
+      document.getElementById("evalDuration").textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+      const codeResults = currentSession.code_result?.results || [];
+      const passedCount = codeResults.filter(item => item.passed).length;
+      document.getElementById("evalCodingStatus").textContent = codeResults.length
+        ? `${passedCount}/${codeResults.length} hidden tests passed`
+        : "Not submitted";
+      if (evaluation) {
+        document.getElementById("evalScore").textContent = `${evaluation.overall_score ?? "—"} / 100`;
+        document.getElementById("evalCoding").textContent = `${evaluation.coding_score ?? "—"} / 100`;
+        document.getElementById("evalTechnical").textContent = `${evaluation.technical_score ?? "—"} / 100`;
+        document.getElementById("evalCommunication").textContent = `${evaluation.communication_score ?? "—"} / 100`;
+        document.getElementById("evalSummary").textContent = evaluation.summary || "No summary returned.";
+      } else {
+        document.getElementById("evalScore").textContent = "Unavailable";
+        document.getElementById("evalCoding").textContent = "Unavailable";
+        document.getElementById("evalTechnical").textContent = "Unavailable";
+        document.getElementById("evalCommunication").textContent = "Unavailable";
+        document.getElementById("evalSummary").textContent = "The evaluation service did not return a report. The transcript and judge result remain saved.";
+      }
+
+      const evidenceBox = document.getElementById("evalEvidence");
+      evidenceBox.replaceChildren();
+      [["Strengths", evaluation?.strengths], ["Gaps", evaluation?.gaps], ["Evidence", evaluation?.evidence], ["Recommended follow-ups", evaluation?.recommended_followups]].forEach(([title, values]) => {
+        if (!Array.isArray(values) || !values.length) return;
+        const heading = document.createElement("strong");
+        heading.textContent = title;
+        const list = document.createElement("ul");
+        list.style.margin = "6px 0 14px 20px";
+        values.forEach(value => {
+          const item = document.createElement("li");
+          item.textContent = value;
+          list.appendChild(item);
+        });
+        evidenceBox.append(heading, list);
+      });
+
+      const reviewBox = document.getElementById("transcriptReviewBox");
+      reviewBox.innerHTML = "";
+
+      transcriptMessages.forEach(m => {
+        const item = document.createElement("div");
+        item.style.marginBottom = "14px";
+        item.style.padding = "10px 14px";
+        item.style.borderRadius = "8px";
+        item.style.background = m.role === "interviewer" ? "#1e293b" : "#1e1b4b";
+
+        const header = document.createElement("div");
+        header.style.fontSize = "11px";
+        header.style.fontWeight = "700";
+        header.style.color = m.role === "interviewer" ? "#818cf8" : "#38bdf8";
+        header.style.marginBottom = "4px";
+        header.textContent = m.role === "interviewer" ? "AI Interviewer (MIT)" : currentSession.candidate_name;
+
+        const body = document.createElement("div");
+        body.style.fontSize = "13px";
+        body.style.lineHeight = "1.5";
+        body.textContent = m.content;
+
+        item.appendChild(header);
+        item.appendChild(body);
+        reviewBox.appendChild(item);
+      });
+    }
+
+    // Export Downloads
+    function downloadTranscriptJSON() {
+      const exported = { call_id: currentSession.call_id, role: currentSession.role, transcript: transcriptMessages, code_result: currentSession.code_result, evaluation: currentSession.evaluation };
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exported, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `interview_transcript_${currentSession.call_id}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    }
+
+    function downloadReportTXT() {
+      let report = `MIT INTERVIEW BOT - CANDIDATE REPORT\n`;
+      report += `==========================================\n`;
+      report += `Candidate: ${currentSession.candidate_name}\n`;
+      report += `Role: ${currentSession.role}\n`;
+      report += `Call ID: ${currentSession.call_id}\n`;
+      report += `Duration: ${document.getElementById("evalDuration").textContent}\n`;
+      const evaluation = currentSession.evaluation;
+      report += `Overall Score: ${evaluation?.overall_score ?? "Unavailable"}${evaluation ? " / 100" : ""}\n`;
+      report += `Technical Score: ${evaluation?.technical_score ?? "Unavailable"}${evaluation ? " / 100" : ""}\n`;
+      report += `Communication Score: ${evaluation?.communication_score ?? "Unavailable"}${evaluation ? " / 100" : ""}\n`;
+      report += `Coding Score: ${evaluation?.coding_score ?? "Unavailable"}${evaluation ? " / 100" : ""}\n`;
+      report += `Summary: ${evaluation?.summary ?? "Evaluation unavailable"}\n\n`;
+      [["STRENGTHS", evaluation?.strengths], ["GAPS", evaluation?.gaps], ["EVIDENCE", evaluation?.evidence], ["RECOMMENDED FOLLOW-UPS", evaluation?.recommended_followups]].forEach(([title, values]) => {
+        report += `${title}:\n`;
+        (values || []).forEach(value => { report += `- ${value}\n`; });
+        report += `\n`;
+      });
+      report += `DIALOGUE TRANSCRIPT:\n`;
+      report += `------------------------------------------\n`;
+      transcriptMessages.forEach(m => {
+        report += `[${m.role.toUpperCase()}]: ${m.content}\n\n`;
+      });
+
+      const dataStr = "data:text/plain;charset=utf-8," + encodeURIComponent(report);
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `interview_report_${currentSession.call_id}.txt`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    }
+
+    // Reset All
+    function resetStudio() {
+      // Invalidate every callback captured by the previous interview before
+      // stopping its WebRTC client.
+      interviewRunId++;
+      // Keep the completion guard set while stopping the old Vapi call: its
+      // asynchronous call-end event must not save/reset a new interview.
+      isFinishingInterview = true;
+      codingModeActive = false;
+      codingTransitionRequested = false;
+      clearTimeout(codingTransitionFallbackTimer);
+      clearTimeout(codeContextTimer);
+      clearTimeout(codeCheckpointTimer);
+      codingCheckpointAsked = false;
+      codingStartedAt = 0;
+      resetCodingWorkspaceUI();
+      lastCodeContext = "";
+      currentSession.code_result = null;
+      currentSession.evaluation = null;
+      evaluationPromise = null;
+      evaluationFingerprint = "";
+      evaluationCodeFingerprint = "";
+      secondsLeft = currentSession.duration_mins * 60;
+      totalSeconds = secondsLeft;
+      transcriptMessages = [];
+      document.getElementById("studioTimer").textContent = `${String(currentSession.duration_mins).padStart(2, "0")}:00`;
+      if (interviewTimer) clearInterval(interviewTimer);
+      interviewTimer = null;
+      timerDeadlineMs = null;
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
+      if (vapiClient) {
+        try { vapiClient.stop(); } catch(e){}
+        vapiClient = null;
+      }
+      isVapiMode = false;
+      currentSession.session_key = null;
+      selectedFile = null;
+      document.getElementById("backendStatus").textContent = "FastAPI Engine: Active";
+      document.getElementById("dropLabel").textContent = "Drag & drop candidate PDF resume here";
+      document.getElementById("emptyProfileState").style.display = "block";
+      document.getElementById("loadedProfileState").style.display = "none";
+      const launchButton = document.getElementById("launchInterviewBtn");
+      if (launchButton) {
+        launchButton.disabled = false;
+        launchButton.textContent = "🎙️ Launch Live Interview Studio →";
+      }
+      switchView(1);
+    }
+
+    // Toast Utility
+    function showToast(msg) {
+      const t = document.getElementById("toast");
+      t.textContent = msg;
+      t.style.display = "block";
+      setTimeout(() => { t.style.display = "none"; }, 3500);
+    }
+  </script>
+</body>
+</html>

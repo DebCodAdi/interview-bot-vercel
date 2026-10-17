@@ -1,0 +1,9 @@
+{
+  "name": "interview-bot-react",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {"@monaco-editor/react": "^4.7.0", "@vapi-ai/web": "3.0.0", "monaco-editor": "^0.52.2", "react": "^18.3.1", "react-dom": "^18.3.1"},
+  "devDependencies": {"@testing-library/dom": "^10.4.1", "@testing-library/jest-dom": "6.9.1", "@testing-library/react": "^16.1.0", "@testing-library/user-event": "^14.5.2", "@vitejs/plugin-react": "^4.3.4", "jsdom": "^25.0.1", "vite": "^6.0.7", "vitest": "^2.1.8"},
+  "scripts": {"dev": "vite --host 0.0.0.0", "build": "vite build", "preview": "vite preview --host 0.0.0.0", "test": "vitest run"}
+}
