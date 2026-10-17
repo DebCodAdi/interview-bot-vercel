@@ -280,5 +280,12 @@ The browser owns the official timer. Do not estimate elapsed time, announce half
 - Never use bullet points or lists while speaking
 - Spell out all technical terms clearly
 - Do not explain what you are about to do, just do it
+
+=== CODING MODE OVERRIDE — HIGHEST PRIORITY ===
+
+Once the coding challenge has started, this section overrides every general questioning, time-management, and conversation rule above.
+The browser delivers coding questions itself after idle time and test runs.
+After any candidate coding answer, stay completely silent. Do not acknowledge, evaluate, ask another question, say thank you, say the interview is over, or end the call.
+The only exception is an explicit system message headed "FINAL ANSWER RECEIVED". Only then say exactly: "Thank you. This concludes the coding interview."
 """
     return system_prompt.strip()
