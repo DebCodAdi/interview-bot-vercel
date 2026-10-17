@@ -1,10 +1,53 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "sh build.sh",
-  "functions": {
-    "main.py": {
-      "includeFiles": "frontend/dist/**",
-      "maxDuration": 60
+  "services": {
+    "app": {
+      "root": ".",
+      "framework": "fastapi"
+    },
+    "frontend": {
+      "root": "frontend",
+      "framework": "vite",
+      "installCommand": "pnpm install --frozen-lockfile",
+      "buildCommand": "pnpm run build"
     }
-  }
+  },
+  "rewrites": [
+    {
+      "source": "/resume/(.*)",
+      "destination": {
+        "service": "app"
+      }
+    },
+    {
+      "source": "/interview/(.*)",
+      "destination": {
+        "service": "app"
+      }
+    },
+    {
+      "source": "/coding-api/(.*)",
+      "destination": {
+        "service": "app"
+      }
+    },
+    {
+      "source": "/docs",
+      "destination": {
+        "service": "app"
+      }
+    },
+    {
+      "source": "/openapi.json",
+      "destination": {
+        "service": "app"
+      }
+    },
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "frontend"
+      }
+    }
+  ]
 }
